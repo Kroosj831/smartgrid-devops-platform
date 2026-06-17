@@ -6,3 +6,6 @@ reports/*.tmp
 actions-runner/
 _work/
 *.tar.gz
+actions-runner/
+_work/
+*.tar.gz
