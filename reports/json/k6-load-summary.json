@@ -1,0 +1,14 @@
+{
+  "scenario": "high_load",
+  "tool": "k6",
+  "vus": 20,
+  "duration": "2m",
+  "totalRequests": 4638,
+  "failedRatePercent": 0.00,
+  "averageLatencyMs": 16.13,
+  "p95LatencyMs": 48.73,
+  "errorRateThresholdPercent": 1,
+  "p95LatencyThresholdMs": 500,
+  "status": "validated",
+  "timestamp": "2026-06-17T12:17:20+00:00"
+}
