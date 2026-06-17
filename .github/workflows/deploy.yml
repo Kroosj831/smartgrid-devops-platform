@@ -1,0 +1,96 @@
+name: SmartGrid DevOps CI-CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start deployment timer
+        run: echo "DEPLOY_START=$(date +%s)" >> $GITHUB_ENV
+
+      - name: Verify environment
+        run: |
+          docker version
+          kubectl get nodes
+          kubectl get namespaces
+
+      - name: Build and import Docker images into K3s
+        run: |
+          chmod +x scripts/build-and-import-images.sh
+          ./scripts/build-and-import-images.sh
+
+      - name: Deploy microservices to Kubernetes
+        run: |
+          kubectl apply -f k8s/smartgrid-dev/microservices.yaml
+
+      - name: Restart deployments
+        run: |
+          kubectl rollout restart deployment/api-gateway -n smartgrid-dev
+          kubectl rollout restart deployment/iot-simulator -n smartgrid-dev
+          kubectl rollout restart deployment/data-collector -n smartgrid-dev
+          kubectl rollout restart deployment/processing-service -n smartgrid-dev
+          kubectl rollout restart deployment/optimization-service -n smartgrid-dev
+
+      - name: Validate rollout
+        run: |
+          kubectl rollout status deployment/api-gateway -n smartgrid-dev --timeout=180s
+          kubectl rollout status deployment/iot-simulator -n smartgrid-dev --timeout=180s
+          kubectl rollout status deployment/data-collector -n smartgrid-dev --timeout=180s
+          kubectl rollout status deployment/processing-service -n smartgrid-dev --timeout=180s
+          kubectl rollout status deployment/optimization-service -n smartgrid-dev --timeout=180s
+
+      - name: Test exposed services
+        run: |
+          curl -f http://localhost:30080/health
+          curl -f http://localhost:30081/health
+          curl -f http://localhost:30081/simulate
+
+      - name: Calculate deployment time
+        run: |
+          DEPLOY_END=$(date +%s)
+          DEPLOY_TIME=$((DEPLOY_END - DEPLOY_START))
+          echo "deployment_time=${DEPLOY_TIME}s"
+
+          mkdir -p reports/json reports/markdown
+
+          STATUS="rejected"
+          if [ "$DEPLOY_TIME" -lt 180 ]; then
+            STATUS="validated"
+          fi
+
+          cat > reports/json/deployment-result.json <<EOF
+          {
+            "scenario": "continuous_deployment",
+            "metricName": "deployment_time",
+            "value": ${DEPLOY_TIME},
+            "unit": "seconds",
+            "threshold": 180,
+            "status": "${STATUS}",
+            "timestamp": "$(date -Iseconds)"
+          }
+          EOF
+
+          cat > reports/markdown/deployment-result.md <<EOF
+          # Résultat du déploiement continu
+
+          - Scénario : continuous_deployment
+          - Métrique : deployment_time
+          - Valeur : ${DEPLOY_TIME} secondes
+          - Seuil : 180 secondes
+          - Statut : ${STATUS}
+          - Date : $(date -Iseconds)
+          EOF
+
+      - name: Show deployment result
+        run: |
+          cat reports/json/deployment-result.json
+          cat reports/markdown/deployment-result.md
