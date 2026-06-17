@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dashboard-api-sa
+  namespace: smartgrid-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dashboard-api-role
+  namespace: smartgrid-dev
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dashboard-api-rolebinding
+  namespace: smartgrid-dev
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-api-sa
+    namespace: smartgrid-dev
+roleRef:
+  kind: Role
+  name: dashboard-api-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-api
+  namespace: smartgrid-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-api
+  template:
+    metadata:
+      labels:
+        app: dashboard-api
+    spec:
+      serviceAccountName: dashboard-api-sa
+      containers:
+        - name: dashboard-api
+          image: dashboard-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: SMARTGRID_NAMESPACE
+              value: "smartgrid-dev"
+          readinessProbe:
+            httpGet:
+              path: /dashboard/health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /dashboard/health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-api
+  namespace: smartgrid-dev
+spec:
+  type: NodePort
+  selector:
+    app: dashboard-api
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      nodePort: 30574
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-frontend
+  namespace: smartgrid-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-frontend
+  template:
+    metadata:
+      labels:
+        app: dashboard-frontend
+    spec:
+      containers:
+        - name: dashboard-frontend
+          image: dashboard-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-frontend
+  namespace: smartgrid-dev
+spec:
+  type: NodePort
+  selector:
+    app: dashboard-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30573

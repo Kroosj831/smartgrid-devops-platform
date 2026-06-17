@@ -1,0 +1,14 @@
+{
+  "name": "dashboard-api",
+  "version": "1.0.0",
+  "description": "Experimental DevOps dashboard API for Smart Grid platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.3"
+  }
+}

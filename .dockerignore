@@ -1,0 +1,4 @@
+.git
+actions-runner
+**/node_modules
+*.tar.gz
