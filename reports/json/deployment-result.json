@@ -1,0 +1,9 @@
+{
+  "scenario": "continuous_deployment",
+  "metricName": "deployment_time",
+  "value": 251,
+  "unit": "seconds",
+  "threshold": 180,
+  "status": "rejected",
+  "timestamp": "2026-06-17T12:03:28+00:00"
+}

@@ -1,4 +1,4 @@
-import { createApp, ref, onMounted } from "vue";
+import { createApp, ref, onMounted } from "vue/dist/vue.esm-bundler.js";
 
 createApp({
   setup() {

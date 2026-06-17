@@ -1,8 +1,13 @@
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-const k8s = require("@kubernetes/client-node");
+import express from "express";
+import cors from "cors";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import * as k8s from "@kubernetes/client-node";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 const app = express();
 

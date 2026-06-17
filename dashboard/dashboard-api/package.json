@@ -1,6 +1,7 @@
 {
   "name": "dashboard-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "Experimental DevOps dashboard API for Smart Grid platform",
   "main": "server.js",
   "scripts": {
