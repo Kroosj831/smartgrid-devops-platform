@@ -1,0 +1,17 @@
+{
+  "name": "optimization-service",
+  "version": "1.0.0",
+  "description": "Optimisation énergétique simulée",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node -e \"console.log('Tests OK for optimization-service')\""
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "cors": "^2.8.5",
+    "prom-client": "^15.1.3",
+    "axios": "^1.6.7"
+  }
+}
