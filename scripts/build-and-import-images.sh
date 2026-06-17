@@ -21,7 +21,7 @@ for SERVICE in "${SERVICES[@]}"; do
   docker save "$SERVICE:latest" -o "/tmp/$SERVICE.tar"
 
   echo "Import image into K3s: $SERVICE"
-  sudo k3s ctr images import "/tmp/$SERVICE.tar"
+  sudo -n /usr/local/bin/k3s ctr images import "/tmp/$SERVICE.tar"
 
   rm "/tmp/$SERVICE.tar"
 done
