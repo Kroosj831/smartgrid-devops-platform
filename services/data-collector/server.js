@@ -177,6 +177,26 @@ if (SERVICE_NAME === "api-gateway") {
   });
 }
 
+
+app.get("/cpu-load", (req, res) => {
+  const durationMs = Number(req.query.duration || 200);
+  const start = Date.now();
+  let result = 0;
+
+  while (Date.now() - start < durationMs) {
+    result += Math.sqrt(Math.random() * 100000);
+  }
+
+  res.json({
+    service: SERVICE_NAME,
+    endpoint: "/cpu-load",
+    durationMs,
+    result,
+    timestamp: new Date().toISOString()
+  });
+});
+
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`${SERVICE_NAME} running on port ${PORT}`);
 });

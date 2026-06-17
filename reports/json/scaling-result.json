@@ -1,0 +1,13 @@
+{
+  "scenario": "dynamic_scaling",
+  "target": "data-collector",
+  "namespace": "smartgrid-dev",
+  "metricName": "scaling_time",
+  "value": 14.036,
+  "unit": "seconds",
+  "fromReplicas": 1,
+  "toReplicas": 3,
+  "threshold": 60,
+  "status": "validated",
+  "timestamp": "2026-06-17T12:38:22+00:00"
+}

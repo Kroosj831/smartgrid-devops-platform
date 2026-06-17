@@ -4,3 +4,4 @@ high_load,error_rate,0.00,percent,<1,validated,2026-06-17T12:18:04+00:00
 high_load,average_latency,16.13,ms,,measured,2026-06-17T12:18:04+00:00
 high_load,p95_latency,48.73,ms,<500,validated,2026-06-17T12:18:04+00:00
 controlled_failure,MTTR,23.220,seconds,<60,validated,2026-06-17T12:13:27+00:00
+dynamic_scaling,scaling_time,14.036,seconds,<60,validated,2026-06-17T12:38:22+00:00
