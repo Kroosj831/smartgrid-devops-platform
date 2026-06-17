@@ -3,3 +3,6 @@ node_modules
 *.log
 /tmp
 reports/*.tmp
+actions-runner/
+_work/
+*.tar.gz
