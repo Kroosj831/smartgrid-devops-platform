@@ -1,96 +1,131 @@
-name: SmartGrid DevOps CI-CD
+name: SmartGrid H1 CI-CD Experiment
+
+run-name: H1 CI/CD - ${{ github.event_name }} - ${{ github.run_id }}
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - h1-cicd-official
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h1-cicd-experiment
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: self-hosted
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
-      - name: Start deployment timer
-        run: echo "DEPLOY_START=$(date +%s)" >> $GITHUB_ENV
+      - name: Prepare experiment context
+        shell: bash
+        run: |
+          COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
 
-      - name: Verify environment
+          if [[ "$COMMIT_SUBJECT" =~ ^H1-CICD-RUN-0[1-3]$ ]]; then
+            if git diff-tree               --no-commit-id               --name-only               -r HEAD |
+              grep -q .
+            then
+              echo "Le commit déclenchant une mesure officielle doit être vide."
+              exit 1
+            fi
+
+            RUN_ID="$COMMIT_SUBJECT"
+            OFFICIAL_MEASUREMENT="YES"
+          else
+            RUN_ID="H1-CICD-DIAG-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            OFFICIAL_MEASUREMENT="NO"
+          fi
+
+          IMAGE_TAG="h1-cicd-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          echo "OFFICIAL_MEASUREMENT=$OFFICIAL_MEASUREMENT" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+      - name: Verify runner environment
+        shell: bash
         run: |
           docker version
           kubectl get nodes
           kubectl get namespaces
+          sudo -n /usr/local/bin/k3s ctr images list >/dev/null
 
-      - name: Build and import Docker images into K3s
+      - name: Execute measured deployment
+        shell: bash
         run: |
-          chmod +x scripts/build-and-import-images.sh
-          ./scripts/build-and-import-images.sh
+          chmod +x scripts/h1-cicd-measure.sh
 
-      - name: Deploy microservices to Kubernetes
+          set +e
+
+          env \
+            RUN_ID="$RUN_ID" \
+            OFFICIAL_MEASUREMENT="$OFFICIAL_MEASUREMENT" \
+            IMAGE_TAG="$IMAGE_TAG" \
+            NAMESPACE="smartgrid-dev" \
+            REFERENCE_SECONDS="180" \
+            ROLLOUT_TIMEOUT_SECONDS="180" \
+            HEALTH_TIMEOUT_SECONDS="30" \
+            ./scripts/h1-cicd-measure.sh \
+            2>&1 | tee workflow-execution.log
+
+          SCRIPT_RC=${PIPESTATUS[0]}
+
+          echo "SCRIPT_RC=$SCRIPT_RC" >> "$GITHUB_ENV"
+
+          exit "$SCRIPT_RC"
+
+      - name: Enforce final rest state
+        if: always()
+        shell: bash
         run: |
-          kubectl apply -f k8s/smartgrid-dev/microservices.yaml
+          for service in \
+            api-gateway \
+            iot-simulator \
+            data-collector \
+            processing-service \
+            optimization-service
+          do
+            kubectl scale \
+              "deployment/$service" \
+              -n smartgrid-dev \
+              --replicas=0 || true
+          done
 
-      - name: Restart deployments
+      - name: Show experimental result
+        if: always()
+        shell: bash
         run: |
-          kubectl rollout restart deployment/api-gateway -n smartgrid-dev
-          kubectl rollout restart deployment/iot-simulator -n smartgrid-dev
-          kubectl rollout restart deployment/data-collector -n smartgrid-dev
-          kubectl rollout restart deployment/processing-service -n smartgrid-dev
-          kubectl rollout restart deployment/optimization-service -n smartgrid-dev
+          echo "RUN_ID=$RUN_ID"
+          echo "SCRIPT_RC=${SCRIPT_RC:-UNKNOWN}"
 
-      - name: Validate rollout
-        run: |
-          kubectl rollout status deployment/api-gateway -n smartgrid-dev --timeout=180s
-          kubectl rollout status deployment/iot-simulator -n smartgrid-dev --timeout=180s
-          kubectl rollout status deployment/data-collector -n smartgrid-dev --timeout=180s
-          kubectl rollout status deployment/processing-service -n smartgrid-dev --timeout=180s
-          kubectl rollout status deployment/optimization-service -n smartgrid-dev --timeout=180s
+          find reports \
+            -type f \
+            -path "*${RUN_ID}*" \
+            -maxdepth 6 \
+            -print 2>/dev/null || true
 
-      - name: Test exposed services
-        run: |
-          curl -f http://localhost:30080/health
-          curl -f http://localhost:30081/health
-          curl -f http://localhost:30081/simulate
+          find reports \
+            -type f \
+            -path "*${RUN_ID}*/result.json" \
+            -exec cat {} \; 2>/dev/null || true
 
-      - name: Calculate deployment time
-        run: |
-          DEPLOY_END=$(date +%s)
-          DEPLOY_TIME=$((DEPLOY_END - DEPLOY_START))
-          echo "deployment_time=${DEPLOY_TIME}s"
-
-          mkdir -p reports/json reports/markdown
-
-          STATUS="rejected"
-          if [ "$DEPLOY_TIME" -lt 180 ]; then
-            STATUS="validated"
-          fi
-
-          cat > reports/json/deployment-result.json <<EOF
-          {
-            "scenario": "continuous_deployment",
-            "metricName": "deployment_time",
-            "value": ${DEPLOY_TIME},
-            "unit": "seconds",
-            "threshold": 180,
-            "status": "${STATUS}",
-            "timestamp": "$(date -Iseconds)"
-          }
-          EOF
-
-          cat > reports/markdown/deployment-result.md <<EOF
-          # Résultat du déploiement continu
-
-          - Scénario : continuous_deployment
-          - Métrique : deployment_time
-          - Valeur : ${DEPLOY_TIME} secondes
-          - Seuil : 180 secondes
-          - Statut : ${STATUS}
-          - Date : $(date -Iseconds)
-          EOF
-
-      - name: Show deployment result
-        run: |
-          cat reports/json/deployment-result.json
-          cat reports/markdown/deployment-result.md
+      - name: Upload experimental evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-cicd-${{ env.RUN_ID }}
+          path: |
+            reports/experiments/deployment/${{ env.RUN_ID }}
+            reports/diagnostics/${{ env.RUN_ID }}-cicd-dry-run
+            workflow-execution.log
+          if-no-files-found: warn
+          retention-days: 30

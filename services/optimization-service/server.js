@@ -3,6 +3,79 @@ const cors = require("cors");
 const client = require("prom-client");
 
 const app = express();
+
+// SMARTGRID_STRUCTURED_ANOMALY_LOGGING_V1
+const classifyHttpAnomaly = (statusCode) => {
+  if (statusCode === 400) return "invalid_request";
+  if (statusCode === 401) return "authentication_error";
+  if (statusCode === 403) return "authorization_error";
+  if (statusCode === 404) return "not_found";
+  if (statusCode >= 500) return "server_error";
+  return "client_error";
+};
+
+app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+
+  const requestId = String(
+    req.headers["x-request-id"] ||
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
+
+  const experimentId = req.headers["x-experiment-id"]
+    ? String(req.headers["x-experiment-id"])
+    : null;
+
+  const anomalyId = req.headers["x-anomaly-id"]
+    ? String(req.headers["x-anomaly-id"])
+    : null;
+
+  res.setHeader("x-request-id", requestId);
+
+  res.once("finish", () => {
+    const statusCode = res.statusCode;
+
+    if (statusCode < 400) {
+      return;
+    }
+
+    const durationMs =
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+
+    const event = {
+      timestamp: new Date().toISOString(),
+      level: statusCode >= 500 ? "error" : "warn",
+      event: "http_anomaly",
+      anomaly: true,
+      anomaly_type: classifyHttpAnomaly(statusCode),
+      service: SERVICE_NAME,
+      request_id: requestId,
+      experiment_id: experimentId,
+      anomaly_id: anomalyId,
+      method: req.method,
+      path: String(
+        req.originalUrl ||
+        req.url ||
+        req.path ||
+        ""
+      ).split("?")[0],
+      status: statusCode,
+      duration_ms: Number(durationMs.toFixed(3))
+    };
+
+    const serializedEvent = JSON.stringify(event);
+
+    if (statusCode >= 500) {
+      console.error(serializedEvent);
+    } else {
+      console.warn(serializedEvent);
+    }
+  });
+
+  next();
+});
+// SMARTGRID_STRUCTURED_ANOMALY_LOGGING_V1_END
+
 const PORT = process.env.PORT || 3004;
 const SERVICE_NAME = "optimization-service";
 
@@ -179,4 +252,11 @@ if (SERVICE_NAME === "api-gateway") {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`${SERVICE_NAME} running on port ${PORT}`);
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level: "info",
+    event: "service_started",
+    service: SERVICE_NAME,
+    port: Number(PORT)
+  }));
 });

@@ -4,7 +4,7 @@ metadata:
   name: iot-simulator
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: iot-simulator
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: iot-simulator
-          image: iot-simulator:latest
+          image: iot-simulator:structured-logs-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3001
@@ -59,7 +59,7 @@ metadata:
   name: data-collector
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: data-collector
@@ -70,7 +70,7 @@ spec:
     spec:
       containers:
         - name: data-collector
-          image: data-collector:latest
+          image: data-collector:structured-logs-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3002
@@ -113,7 +113,7 @@ metadata:
   name: processing-service
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: processing-service
@@ -124,7 +124,7 @@ spec:
     spec:
       containers:
         - name: processing-service
-          image: processing-service:latest
+          image: processing-service:structured-logs-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3003
@@ -167,7 +167,7 @@ metadata:
   name: optimization-service
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: optimization-service
@@ -178,7 +178,7 @@ spec:
     spec:
       containers:
         - name: optimization-service
-          image: optimization-service:latest
+          image: optimization-service:structured-logs-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3004
@@ -221,7 +221,7 @@ metadata:
   name: api-gateway
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: api-gateway
@@ -232,7 +232,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: api-gateway:latest
+          image: api-gateway:structured-logs-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
