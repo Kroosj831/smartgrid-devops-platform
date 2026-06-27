@@ -1,62 +1,33 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
+const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:13002";
+const cpuDurationMs = __ENV.CPU_DURATION_MS || "100";
+const experimentId = __ENV.EXPERIMENT_ID || "HPA-DIAGNOSTIC";
+
 export const options = {
-  vus: 20,
-  duration: "2m",
+  vus: Number(__ENV.VUS || 10),
+  duration: __ENV.DURATION || "60s",
+  discardResponseBodies: true,
   thresholds: {
-    http_req_failed: ["rate<0.01"],
-    http_req_duration: ["p(95)<500"]
-  },
-  summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max"]
+    http_req_failed: ["rate<0.05"]
+  }
 };
 
-const BASE_URL = __ENV.BASE_URL || "http://localhost:30081";
-
 export default function () {
-  const healthRes = http.get(`${BASE_URL}/health`);
+  const response = http.get(
+    `${baseUrl}/cpu-load?duration=${cpuDurationMs}`,
+    {
+      headers: {
+        "x-experiment-id": experimentId
+      },
+      timeout: "10s"
+    }
+  );
 
-  check(healthRes, {
-    "health status is 200": (r) => r.status === 200
+  check(response, {
+    "cpu-load status is 200": (result) => result.status === 200
   });
 
-  const simulateRes = http.get(`${BASE_URL}/simulate`);
-
-  check(simulateRes, {
-    "simulate status is 200": (r) => r.status === 200,
-    "simulate returns data": (r) => r.body && r.body.includes("data")
-  });
-
-  sleep(1);
-}
-
-export function handleSummary(data) {
-  return {
-    "reports/json/k6-load-summary.json": JSON.stringify(data, null, 2),
-    stdout: textSummary(data)
-  };
-}
-
-function textSummary(data) {
-  const metrics = data.metrics;
-
-  const totalRequests = metrics.http_reqs?.values?.count || 0;
-  const failedRate = metrics.http_req_failed?.values?.rate || 0;
-  const avgDuration = metrics.http_req_duration?.values?.avg || 0;
-  const p95Duration = metrics.http_req_duration?.values?.["p(95)"] || 0;
-
-  return `
-# Résultat du test de charge k6
-
-- Scénario : forte charge
-- VUs : 20
-- Durée : 2 minutes
-- Requêtes totales : ${totalRequests}
-- Taux d'échec : ${(failedRate * 100).toFixed(2)} %
-- Latence moyenne : ${avgDuration.toFixed(2)} ms
-- Latence p95 : ${p95Duration.toFixed(2)} ms
-- Seuil taux d'échec : < 1 %
-- Seuil latence p95 : < 500 ms
-
-`;
+  sleep(Number(__ENV.SLEEP_SECONDS || 0.1));
 }

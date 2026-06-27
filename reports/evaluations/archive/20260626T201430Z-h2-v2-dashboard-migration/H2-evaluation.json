@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "1.0",
+  "hypothesisId": "H2",
+  "title": "Supervision et observabilité",
+  "evaluatedAt": "2026-06-21T13:40:00.909Z",
+  "minimumValidRunsPerScenario": 3,
+  "totalRunsFound": 0,
+  "totalValidRuns": 0,
+  "scenarioCoverage": {
+    "nominal": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    },
+    "high_load": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    },
+    "observable_anomaly": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    }
+  },
+  "criteriaResults": [
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C1",
+      "metric": "monitoring_coverage_percent",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": null,
+      "aggregation": "latest",
+      "sampleSize": 0,
+      "scenarios": [
+        "nominal"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "nominal"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C2",
+      "metric": "metrics_available",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": null,
+      "aggregation": "all",
+      "sampleSize": 0,
+      "scenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C3",
+      "metric": "logs_available",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": null,
+      "aggregation": "all",
+      "sampleSize": 0,
+      "scenarios": [
+        "nominal",
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "nominal",
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C4",
+      "metric": "detection_time_seconds",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "observed": null,
+      "aggregation": "median",
+      "sampleSize": 0,
+      "scenarios": [
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C5",
+      "metric": "affected_service_identified",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": null,
+      "aggregation": "all",
+      "sampleSize": 0,
+      "scenarios": [
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C6",
+      "metric": "evidence_formats_complete",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": null,
+      "aggregation": "all",
+      "sampleSize": 0,
+      "scenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-C7",
+      "metric": "anomaly_detection_rate_percent",
+      "operator": ">=",
+      "threshold": 100,
+      "unit": "%",
+      "observed": null,
+      "aggregation": "mean",
+      "sampleSize": 0,
+      "scenarios": [
+        "observable_anomaly"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "observable_anomaly"
+      ],
+      "status": "NOT_MEASURED"
+    }
+  ],
+  "verdict": "INDETERMINATE"
+}

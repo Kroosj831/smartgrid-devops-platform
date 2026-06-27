@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "id": "high_load",
+  "title": "Forte charge applicative",
+  "hypothesisIds": [
+    "H2"
+  ],
+  "purpose": "Évaluer les performances et la visibilité des dégradations sous une charge contrôlée.",
+  "minimumValidRuns": 3,
+  "timeoutSeconds": 300,
+  "prerequisites": [
+    "Le scénario nominal est valide",
+    "Le service cible est disponible",
+    "k6 est installé",
+    "Prometheus collecte les métriques des services"
+  ],
+  "parameters": {
+    "targetService": "api-gateway",
+    "virtualUsers": 20,
+    "durationSeconds": 120,
+    "latencyP95ThresholdMs": 100,
+    "errorRateThresholdPercent": 1
+  },
+  "metrics": [
+    "total_requests",
+    "latency_mean_ms",
+    "latency_p95_ms",
+    "error_rate_percent",
+    "cpu_average_percent",
+    "cpu_max_percent",
+    "memory_average_mib",
+    "memory_max_mib",
+    "metrics_available",
+    "logs_available",
+    "evidence_formats_complete"
+  ],
+  "procedure": [
+    "Vérifier l'état initial de la plateforme",
+    "Démarrer la collecte des métriques",
+    "Lancer le test k6",
+    "Collecter la latence et le taux d'erreur",
+    "Collecter le CPU et la mémoire",
+    "Vérifier l'état des Pods après le test",
+    "Exporter les résultats k6 et Prometheus"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "k6-summary.json",
+    "k6-output.txt",
+    "prometheus-metrics.json",
+    "pods-before.txt",
+    "pods-after.txt",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "schemaVersion": "2.0",
+  "documentStatus": "FINAL_OFFICIAL",
+  "generatedAt": "2026-06-26T20:37:36.332868+00:00",
+  "totalOfficialRuns": 12,
+  "totalTechnicallyValidRuns": 12,
+  "globalTechnicalValidityRatePercent": 100.0,
+  "hypotheses": {
+    "H1": {
+      "title": "Automatisation du déploiement, résilience et scalabilité",
+      "statement": "L'intégration d'un pipeline CI/CD à Kubernetes permet d'automatiser et de reproduire le déploiement des microservices, de restaurer les services après une panne contrôlée, d'adapter dynamiquement les réplicas et de maintenir ou rétablir leur disponibilité.",
+      "officialRuns": 9,
+      "technicallyValidRuns": 9,
+      "functionalSuccessRatePercent": 100.0,
+      "verdict": "VALIDATED",
+      "scientificConclusion": "H1 est soutenue fonctionnellement dans le périmètre expérimental. Les neuf exécutions officielles sont techniquement valides. La scalabilité présente toutefois une variabilité temporelle, la référence indicative de 30 secondes n'ayant été satisfaite que dans une exécution sur trois.",
+      "components": {
+        "dynamicScaling": {
+          "officialRuns": 3,
+          "technicallyValidRuns": 3,
+          "functionalSuccessRatePercent": 100.0,
+          "meanSeconds": 36.88,
+          "medianSeconds": 41.138,
+          "minimumSeconds": 27.957,
+          "maximumSeconds": 41.546,
+          "sampleStandardDeviationSeconds": 7.731,
+          "referenceSeconds": 30,
+          "referenceMetRuns": 1,
+          "decision": "functionally_validated_with_performance_variability"
+        },
+        "failureRecovery": {
+          "officialRuns": 3,
+          "technicallyValidRuns": 3,
+          "functionalSuccessRatePercent": 100.0,
+          "meanMttrSeconds": 12.987,
+          "medianMttrSeconds": 12.989,
+          "minimumMttrSeconds": 12.978,
+          "maximumMttrSeconds": 12.993,
+          "sampleStandardDeviationSeconds": 0.008,
+          "referenceSeconds": 60,
+          "referenceMetRuns": 3,
+          "decision": "validated"
+        },
+        "continuousDeployment": {
+          "officialRuns": 3,
+          "technicallyValidRuns": 3,
+          "functionalSuccessRatePercent": 100.0,
+          "meanSeconds": 44.099,
+          "medianSeconds": 47.855,
+          "minimumSeconds": 35.636,
+          "maximumSeconds": 48.805,
+          "sampleStandardDeviationSeconds": 7.344,
+          "referenceSeconds": 180,
+          "referenceMetRuns": 3,
+          "treeInvariant": true,
+          "decision": "validated"
+        }
+      },
+      "thresholdInterpretation": "The temporal references are indicative and do not independently determine hypothesis validation.",
+      "validationScope": "functional_validation_in_local_single_node_experimental_environment",
+      "limitations": [
+        "Single-node K3s cluster",
+        "Local virtualized infrastructure",
+        "Limited number of official repetitions",
+        "Observed variability in scaling and deployment times"
+      ]
+    },
+    "H2": {
+      "title": "Supervision et observabilité",
+      "statement": "La chaîne d'observabilité fondée sur Prometheus, Grafana, Alloy et Loki permet de centraliser des métriques et des journaux exploitables pour une requête traversant les cinq microservices Smart Grid.",
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "validRunRatePercent": 100.0,
+      "verdict": "VALIDATED",
+      "scientificConclusion": "H2 est soutenue dans le périmètre expérimental. Les trois exécutions officielles ont obtenu une couverture Prometheus et Loki de 100 %, une corrélation request-id de 100 % et des délais maximaux de visibilité de 2 secondes.",
+      "protocol": {
+        "name": "H2 V2",
+        "officialRunsRequired": 3,
+        "visibilityReferenceMilliseconds": 30000,
+        "loadProfile": {
+          "virtualUsers": 20,
+          "durationSeconds": 120,
+          "targetServices": 5,
+          "hpaEnabled": false,
+          "replicasPerService": 1
+        }
+      },
+      "workload": {
+        "totalHttpRequests": 6940,
+        "meanHttpRequestsPerRun": 2313.333,
+        "minimumHttpRequests": 2308,
+        "maximumHttpRequests": 2320
+      },
+      "primaryMetrics": {
+        "prometheusServiceCoveragePercent": {
+          "values": [
+            100,
+            100,
+            100
+          ],
+          "minimum": 100,
+          "decision": "validated"
+        },
+        "lokiServiceCoveragePercent": {
+          "values": [
+            100,
+            100,
+            100
+          ],
+          "minimum": 100,
+          "decision": "validated"
+        },
+        "requestIdCorrelationCoveragePercent": {
+          "values": [
+            100,
+            100,
+            100
+          ],
+          "minimum": 100,
+          "decision": "validated"
+        },
+        "logVisibilityDelayMilliseconds": {
+          "values": [
+            1000,
+            2000,
+            2000
+          ],
+          "mean": 1666.667,
+          "median": 2000,
+          "minimum": 1000,
+          "maximum": 2000,
+          "reference": 30000,
+          "referenceMetRuns": 3,
+          "decision": "validated"
+        },
+        "metricVisibilityDelayMilliseconds": {
+          "values": [
+            1000,
+            2000,
+            2000
+          ],
+          "mean": 1666.667,
+          "median": 2000,
+          "minimum": 1000,
+          "maximum": 2000,
+          "reference": 30000,
+          "referenceMetRuns": 3,
+          "decision": "validated"
+        },
+        "observabilitySourceCoveragePercent": {
+          "values": [
+            100,
+            100,
+            100
+          ],
+          "minimum": 100,
+          "decision": "validated"
+        },
+        "artifactCompletenessPercent": {
+          "values": [
+            100,
+            100,
+            100
+          ],
+          "minimum": 100,
+          "decision": "validated"
+        }
+      },
+      "descriptiveMetrics": {
+        "httpFailureRatePercent": {
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 0.0,
+          "maximum": 0.0
+        },
+        "httpLatencyAverageMilliseconds": {
+          "values": [
+            42.11400090614195,
+            37.549757305172406,
+            41.071061151213165
+          ],
+          "mean": 40.24494,
+          "median": 41.071061,
+          "minimum": 37.549757,
+          "maximum": 42.114001,
+          "sampleStandardDeviation": 2.391639
+        },
+        "httpLatencyP95Milliseconds": {
+          "values": [
+            100.77714375,
+            86.97366854999973,
+            105.67004615000006
+          ],
+          "mean": 97.806953,
+          "median": 100.777144,
+          "minimum": 86.973669,
+          "maximum": 105.670046
+        },
+        "httpLatencyMaximumMilliseconds": {
+          "values": [
+            557.55077,
+            434.967994,
+            468.047066
+          ],
+          "mean": 486.855277,
+          "maximumObserved": 557.55077
+        }
+      },
+      "resourcesByService": {
+        "api-gateway": {
+          "observations": 3,
+          "meanCpuMillicores": 118.509036,
+          "meanMemoryMiB": 48.335208,
+          "totalRestartDelta": 0
+        },
+        "data-collector": {
+          "observations": 3,
+          "meanCpuMillicores": 29.880055,
+          "meanMemoryMiB": 45.169115,
+          "totalRestartDelta": 0
+        },
+        "iot-simulator": {
+          "observations": 3,
+          "meanCpuMillicores": 25.972002,
+          "meanMemoryMiB": 43.010521,
+          "totalRestartDelta": 0
+        },
+        "optimization-service": {
+          "observations": 3,
+          "meanCpuMillicores": 25.526296,
+          "meanMemoryMiB": 42.968437,
+          "totalRestartDelta": 0
+        },
+        "processing-service": {
+          "observations": 3,
+          "meanCpuMillicores": 24.911166,
+          "meanMemoryMiB": 43.546146,
+          "totalRestartDelta": 0
+        }
+      },
+      "validationScope": "observability_validation_under_constant_load_in_local_single_node_experimental_environment",
+      "limitations": [
+        "Cluster K3s mono-nœud",
+        "Infrastructure locale virtualisée",
+        "Trois répétitions officielles",
+        "Charge constante limitée à 20 utilisateurs virtuels pendant 120 secondes",
+        "Une seule réplique par microservice et HPA désactivé",
+        "Absence de validation dans un cluster distribué multi-nœuds"
+      ]
+    }
+  },
+  "globalConclusion": "Les résultats soutiennent les deux hypothèses dans le périmètre expérimental défini. H1 démontre l'automatisation du déploiement, la récupération après panne et l'adaptation des réplicas. H2 démontre la centralisation et la corrélation des métriques et des journaux des cinq microservices. Ces conclusions restent limitées à une infrastructure locale virtualisée et à un cluster Kubernetes K3s mono-nœud.",
+  "sourceArtifacts": [
+    "reports/hypotheses/H1/summary.json",
+    "reports/hypotheses/H2/summary.json",
+    "reports/evaluations/H1-evaluation.json",
+    "reports/evaluations/H2-evaluation.json",
+    "reports/evaluations/index.json"
+  ]
+}

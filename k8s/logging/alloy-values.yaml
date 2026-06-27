@@ -1,0 +1,58 @@
+crds:
+  create: false
+
+alloy:
+  image:
+    tag: v1.17.0
+    pullPolicy: IfNotPresent
+
+  configMap:
+    create: true
+
+  clustering:
+    enabled: false
+
+  enableReporting: false
+
+  mounts:
+    varlog: false
+    dockercontainers: false
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+controller:
+  type: deployment
+  replicas: 1
+  minReadySeconds: 5
+  hostNetwork: false
+  hostPID: false
+  revisionHistoryLimit: 2
+
+  autoscaling:
+    horizontal:
+      enabled: false
+    vertical:
+      enabled: false
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  automountServiceAccountToken: true
+
+configReloader:
+  enabled: false

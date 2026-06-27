@@ -1,0 +1,58 @@
+{
+  "hypothesis": "H1",
+  "statement": "L'intégration d'un pipeline CI/CD à Kubernetes permet d'automatiser et de reproduire le déploiement des microservices, de restaurer les services après une panne contrôlée, d'adapter dynamiquement les réplicas et de maintenir ou rétablir leur disponibilité.",
+  "decision": "validated",
+  "validationScope": "functional_validation_in_local_single_node_experimental_environment",
+  "officialRuns": 9,
+  "technicallyValidRuns": 9,
+  "functionalSuccessRatePercent": 100.0,
+  "components": {
+    "dynamicScaling": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanSeconds": 36.880,
+      "medianSeconds": 41.138,
+      "minimumSeconds": 27.957,
+      "maximumSeconds": 41.546,
+      "sampleStandardDeviationSeconds": 7.731,
+      "referenceSeconds": 30,
+      "referenceMetRuns": 1,
+      "decision": "functionally_validated_with_performance_variability"
+    },
+    "failureRecovery": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanMttrSeconds": 12.987,
+      "medianMttrSeconds": 12.989,
+      "minimumMttrSeconds": 12.978,
+      "maximumMttrSeconds": 12.993,
+      "sampleStandardDeviationSeconds": 0.008,
+      "referenceSeconds": 60,
+      "referenceMetRuns": 3,
+      "decision": "validated"
+    },
+    "continuousDeployment": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanSeconds": 44.099,
+      "medianSeconds": 47.855,
+      "minimumSeconds": 35.636,
+      "maximumSeconds": 48.805,
+      "sampleStandardDeviationSeconds": 7.344,
+      "referenceSeconds": 180,
+      "referenceMetRuns": 3,
+      "treeInvariant": true,
+      "decision": "validated"
+    }
+  },
+  "thresholdInterpretation": "The temporal references are indicative and do not independently determine hypothesis validation.",
+  "limitations": [
+    "Single-node K3s cluster",
+    "Local virtualized infrastructure",
+    "Limited number of official repetitions",
+    "Observed variability in scaling and deployment times"
+  ]
+}

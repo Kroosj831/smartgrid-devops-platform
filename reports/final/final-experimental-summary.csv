@@ -1,0 +1,8 @@
+hypothesis,scenario,metric,observed_value,unit,reference,reference_met_runs,sample_size,criterion_role,status,interpretation
+H1,continuous_deployment,deployment_time_mean,44.099,seconds,<= 180,3,3,contextual_performance,VALIDATED,Déploiement techniquement et fonctionnellement réussi dans les trois répétitions.
+H1,controlled_failure,mttr_mean,12.987,seconds,<= 60,3,3,contextual_performance,VALIDATED,Service restauré dans les trois répétitions.
+H1,dynamic_scaling,scaling_time_mean,36.88,seconds,<= 30,1,3,indicative_performance,VALIDATED_WITH_PERFORMANCE_VARIABILITY,"La cible de réplication a été atteinte dans les trois runs, mais la référence indicative n'a été respectée que dans un run sur trois."
+H2,integrated_observability_under_load,prometheus_service_coverage,100,percent,== 100,3,3,primary,VALIDATED,Les cinq microservices disposent de données Prometheus.
+H2,integrated_observability_under_load,loki_service_coverage,100,percent,== 100,3,3,primary,VALIDATED,Les cinq microservices disposent de journaux corrélés.
+H2,integrated_observability_under_load,request_id_correlation_coverage,100,percent,== 100,3,3,primary,VALIDATED,La sonde officielle est corrélée dans les cinq services.
+H2,integrated_observability_under_load,maximum_visibility_delay,2000,milliseconds,<= 30000,3,3,primary,VALIDATED,Les logs et les métriques deviennent visibles en 2 secondes au maximum.

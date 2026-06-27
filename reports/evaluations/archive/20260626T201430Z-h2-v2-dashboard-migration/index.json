@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-21T13:40:00.910Z",
+  "experimentResultsDirectory": "reports/experiments",
+  "totalRunsEvaluated": 0,
+  "runs": [],
+  "hypotheses": {
+    "H1": {
+      "verdict": "INDETERMINATE",
+      "totalRunsFound": 0,
+      "totalValidRuns": 0,
+      "evaluationFile": "reports/evaluations/H1-evaluation.json",
+      "markdownFile": "reports/evaluations/H1-evaluation.md"
+    },
+    "H2": {
+      "verdict": "INDETERMINATE",
+      "totalRunsFound": 0,
+      "totalValidRuns": 0,
+      "evaluationFile": "reports/evaluations/H2-evaluation.json",
+      "markdownFile": "reports/evaluations/H2-evaluation.md"
+    }
+  }
+}

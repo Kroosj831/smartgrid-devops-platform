@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "H1-CICD-RUN-01",
+  "hypothesisId": "H1",
+  "scenario": "continuous_deployment",
+  "technicallyValid": true,
+  "functionalSuccess": true,
+  "performanceReferenceMet": true,
+  "sourceDecision": "successful",
+  "metrics": {
+    "deploymentTimeSeconds": 48.805,
+    "referenceSeconds": 180.0,
+    "referenceMet": true,
+    "treeInvariant": true
+  },
+  "sourceArtifact": "reports/experiments/deployment/github-actions/H1-CICD-RUN-01/reports/experiments/deployment/H1-CICD-RUN-01/result.json",
+  "verdict": "VALIDATED"
+}

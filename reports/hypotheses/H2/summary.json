@@ -1,0 +1,263 @@
+{
+  "hypothesis": "H2",
+  "statement": "La chaîne d'observabilité fondée sur Prometheus, Grafana, Alloy et Loki permet de centraliser des métriques et des journaux exploitables pour une requête traversant les cinq microservices Smart Grid.",
+  "decision": "validated",
+  "scientificVerdict": "supported",
+  "decisionBasis": "all_three_canonical_runs_satisfied_acceptance_criteria_A02_to_A10",
+  "validationScope": "observability_validation_under_constant_load_in_local_single_node_experimental_environment",
+  "protocol": {
+    "name": "H2 V2",
+    "officialRunsRequired": 3,
+    "visibilityReferenceMilliseconds": 30000,
+    "loadProfile": {
+      "virtualUsers": 20,
+      "durationSeconds": 120,
+      "targetServices": 5,
+      "hpaEnabled": false,
+      "replicasPerService": 1
+    }
+  },
+  "officialRuns": 3,
+  "technicallyValidRuns": 3,
+  "validRunRatePercent": 100.0,
+  "workload": {
+    "totalHttpRequests": 6940,
+    "meanHttpRequestsPerRun": 2313.333,
+    "minimumHttpRequests": 2308,
+    "maximumHttpRequests": 2320
+  },
+  "primaryMetrics": {
+    "prometheusServiceCoveragePercent": {
+      "values": [
+        100,
+        100,
+        100
+      ],
+      "minimum": 100,
+      "decision": "validated"
+    },
+    "lokiServiceCoveragePercent": {
+      "values": [
+        100,
+        100,
+        100
+      ],
+      "minimum": 100,
+      "decision": "validated"
+    },
+    "requestIdCorrelationCoveragePercent": {
+      "values": [
+        100,
+        100,
+        100
+      ],
+      "minimum": 100,
+      "decision": "validated"
+    },
+    "logVisibilityDelayMilliseconds": {
+      "values": [
+        1000,
+        2000,
+        2000
+      ],
+      "mean": 1666.667,
+      "median": 2000,
+      "minimum": 1000,
+      "maximum": 2000,
+      "reference": 30000,
+      "referenceMetRuns": 3,
+      "decision": "validated"
+    },
+    "metricVisibilityDelayMilliseconds": {
+      "values": [
+        1000,
+        2000,
+        2000
+      ],
+      "mean": 1666.667,
+      "median": 2000,
+      "minimum": 1000,
+      "maximum": 2000,
+      "reference": 30000,
+      "referenceMetRuns": 3,
+      "decision": "validated"
+    },
+    "observabilitySourceCoveragePercent": {
+      "values": [
+        100,
+        100,
+        100
+      ],
+      "minimum": 100,
+      "decision": "validated"
+    },
+    "artifactCompletenessPercent": {
+      "values": [
+        100,
+        100,
+        100
+      ],
+      "minimum": 100,
+      "decision": "validated"
+    }
+  },
+  "descriptiveMetrics": {
+    "httpFailureRatePercent": {
+      "values": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean": 0.0,
+      "maximum": 0.0
+    },
+    "httpLatencyAverageMilliseconds": {
+      "values": [
+        42.11400090614195,
+        37.549757305172406,
+        41.071061151213165
+      ],
+      "mean": 40.24494,
+      "median": 41.071061,
+      "minimum": 37.549757,
+      "maximum": 42.114001,
+      "sampleStandardDeviation": 2.391639
+    },
+    "httpLatencyP95Milliseconds": {
+      "values": [
+        100.77714375,
+        86.97366854999973,
+        105.67004615000006
+      ],
+      "mean": 97.806953,
+      "median": 100.777144,
+      "minimum": 86.973669,
+      "maximum": 105.670046
+    },
+    "httpLatencyMaximumMilliseconds": {
+      "values": [
+        557.55077,
+        434.967994,
+        468.047066
+      ],
+      "mean": 486.855277,
+      "maximumObserved": 557.55077
+    }
+  },
+  "resourcesByService": {
+    "api-gateway": {
+      "observations": 3,
+      "meanCpuMillicores": 118.509036,
+      "meanMemoryMiB": 48.335208,
+      "totalRestartDelta": 0
+    },
+    "data-collector": {
+      "observations": 3,
+      "meanCpuMillicores": 29.880055,
+      "meanMemoryMiB": 45.169115,
+      "totalRestartDelta": 0
+    },
+    "iot-simulator": {
+      "observations": 3,
+      "meanCpuMillicores": 25.972002,
+      "meanMemoryMiB": 43.010521,
+      "totalRestartDelta": 0
+    },
+    "optimization-service": {
+      "observations": 3,
+      "meanCpuMillicores": 25.526296,
+      "meanMemoryMiB": 42.968437,
+      "totalRestartDelta": 0
+    },
+    "processing-service": {
+      "observations": 3,
+      "meanCpuMillicores": 24.911166,
+      "meanMemoryMiB": 43.546146,
+      "totalRestartDelta": 0
+    }
+  },
+  "officialRunDetails": [
+    {
+      "runId": "H2-V2-RUN-01",
+      "experimentId": "H2-V2-RUN-01-20260626T104018Z",
+      "requestId": "H2-V2-RUN-01-20260626T104018Z-PROBE-001",
+      "status": "VALID",
+      "k6ExitCode": 0,
+      "metrics": {
+        "httpRequestsTotal": 2312,
+        "httpFailureRatePct": 0.0,
+        "httpLatencyAverageMs": 42.11400090614195,
+        "httpLatencyP95Ms": 100.77714375,
+        "httpLatencyMaxMs": 557.55077,
+        "prometheusServiceCoveragePct": 100,
+        "lokiServiceCoveragePct": 100,
+        "requestIdCorrelationCoveragePct": 100,
+        "logVisibilityDelayMs": 1000,
+        "metricVisibilityDelayMs": 1000,
+        "observabilitySourceCoveragePct": 100,
+        "artifactCompletenessPct": 100
+      }
+    },
+    {
+      "runId": "H2-V2-RUN-02",
+      "experimentId": "H2-V2-RUN-02-20260626T104424Z",
+      "requestId": "H2-V2-RUN-02-20260626T104424Z-PROBE-001",
+      "status": "VALID",
+      "k6ExitCode": 0,
+      "metrics": {
+        "httpRequestsTotal": 2320,
+        "httpFailureRatePct": 0.0,
+        "httpLatencyAverageMs": 37.549757305172406,
+        "httpLatencyP95Ms": 86.97366854999973,
+        "httpLatencyMaxMs": 434.967994,
+        "prometheusServiceCoveragePct": 100,
+        "lokiServiceCoveragePct": 100,
+        "requestIdCorrelationCoveragePct": 100,
+        "logVisibilityDelayMs": 2000,
+        "metricVisibilityDelayMs": 2000,
+        "observabilitySourceCoveragePct": 100,
+        "artifactCompletenessPct": 100
+      }
+    },
+    {
+      "runId": "H2-V2-RUN-03",
+      "experimentId": "H2-V2-RUN-03-20260626T104831Z",
+      "requestId": "H2-V2-RUN-03-20260626T104831Z-PROBE-001",
+      "status": "VALID",
+      "k6ExitCode": 0,
+      "metrics": {
+        "httpRequestsTotal": 2308,
+        "httpFailureRatePct": 0.0,
+        "httpLatencyAverageMs": 41.071061151213165,
+        "httpLatencyP95Ms": 105.67004615000006,
+        "httpLatencyMaxMs": 468.047066,
+        "prometheusServiceCoveragePct": 100,
+        "lokiServiceCoveragePct": 100,
+        "requestIdCorrelationCoveragePct": 100,
+        "logVisibilityDelayMs": 2000,
+        "metricVisibilityDelayMs": 2000,
+        "observabilitySourceCoveragePct": 100,
+        "artifactCompletenessPct": 100
+      }
+    }
+  ],
+  "interpretation": "Les métriques de latence, de taux d'échec, de CPU et de mémoire sont descriptives. La décision repose sur la couverture Prometheus et Loki, la corrélation du request-id, les délais de visibilité et la complétude des preuves.",
+  "limitations": [
+    "Cluster K3s mono-nœud",
+    "Infrastructure locale virtualisée",
+    "Trois répétitions officielles",
+    "Charge constante limitée à 20 utilisateurs virtuels pendant 120 secondes",
+    "Une seule réplique par microservice et HPA désactivé",
+    "Absence de validation dans un cluster distribué multi-nœuds"
+  ],
+  "sourceArtifacts": [
+    "reports/evidence/H2/H2-V2-OFFICIAL-RUNS-SUMMARY.tsv",
+    "reports/evidence/H2/H2-V2-RESOURCE-SUMMARY.tsv",
+    "reports/evidence/H2/H2-V2-OFFICIAL-PROTOCOL-V1/protocol/acceptance-criteria.tsv",
+    "reports/evidence/H2/H2-V2-OFFICIAL-PROTOCOL-V1/protocol/decision-rule.md",
+    "reports/evidence/H2/H2-V2-RUN-01/results/run-results.json",
+    "reports/evidence/H2/H2-V2-RUN-02/results/run-results.json",
+    "reports/evidence/H2/H2-V2-RUN-03/results/run-results.json"
+  ],
+  "generatedAt": "2026-06-26T20:08:29.329329+00:00"
+}

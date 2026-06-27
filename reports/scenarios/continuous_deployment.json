@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "id": "continuous_deployment",
+  "title": "Déploiement continu automatisé",
+  "hypothesisIds": ["H1"],
+  "purpose": "Mesurer la durée, la fiabilité et le résultat d'un déploiement automatisé exécuté par la chaîne CI/CD.",
+  "minimumValidRuns": 3,
+  "timeoutSeconds": 600,
+  "prerequisites": [
+    "Le cluster Kubernetes est stable",
+    "Le runner GitHub Actions est opérationnel",
+    "Le workflow CI/CD est disponible",
+    "Les manifests Kubernetes sont valides"
+  ],
+  "parameters": {
+    "targetBranch": "main",
+    "deploymentNamespace": "smartgrid-dev",
+    "deploymentThresholdSeconds": 180
+  },
+  "metrics": [
+    "deployment_time_seconds",
+    "deployment_failure_rate_percent",
+    "service_restored"
+  ],
+  "procedure": [
+    "Enregistrer l'état initial des Deployments",
+    "Déclencher le workflow CI/CD",
+    "Enregistrer l'heure de début",
+    "Suivre les étapes de construction, test et déploiement",
+    "Attendre la fin du rollout Kubernetes",
+    "Tester la disponibilité des services",
+    "Calculer le temps total du déploiement",
+    "Exporter le statut du pipeline et les preuves"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "workflow-result.json",
+    "deployments-before.txt",
+    "deployments-after.txt",
+    "rollout-status.txt",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "experiment-result.schema.json",
+  "title": "Smart Grid DevOps Experiment Result",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "scenario",
+    "hypothesisIds",
+    "status",
+    "startedAt",
+    "metrics",
+    "criteriaResults",
+    "verdict",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario": {
+      "type": "string",
+      "enum": [
+        "nominal",
+        "high_load",
+        "continuous_deployment",
+        "controlled_failure",
+        "observable_anomaly",
+        "scaling"
+      ]
+    },
+    "hypothesisIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "H1",
+          "H2"
+        ]
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "COLLECTING",
+        "ANALYZING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "durationSeconds": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "integer",
+          "boolean",
+          "string",
+          "null"
+        ]
+      }
+    },
+    "criteriaResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "criterionId",
+          "metric",
+          "operator",
+          "threshold",
+          "observed",
+          "status"
+        ],
+        "properties": {
+          "criterionId": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "<",
+              "<=",
+              ">",
+              ">=",
+              "==",
+              "!="
+            ]
+          },
+          "threshold": {
+            "type": [
+              "number",
+              "integer",
+              "boolean",
+              "string"
+            ]
+          },
+          "observed": {
+            "type": [
+              "number",
+              "integer",
+              "boolean",
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "REJECTED",
+              "NOT_MEASURED"
+            ]
+          },
+          "hypothesisId": {
+            "type": "string",
+            "enum": [
+              "H1",
+              "H2"
+            ]
+          },
+          "aggregation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "VALIDATED",
+        "REJECTED",
+        "INDETERMINATE"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "path"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "markdown",
+              "text",
+              "log",
+              "archive",
+              "checksum"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "validity": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

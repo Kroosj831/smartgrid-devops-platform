@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "id": "scaling",
+  "title": "Scalabilité automatique",
+  "hypothesisIds": ["H1"],
+  "purpose": "Mesurer le temps nécessaire à Kubernetes pour adapter le nombre de réplicas d'un service à une augmentation de la charge.",
+  "minimumValidRuns": 3,
+  "timeoutSeconds": 300,
+  "prerequisites": [
+    "Le nœud Kubernetes est Ready",
+    "Le service cible est disponible",
+    "Le HPA du service cible est configuré",
+    "Les métriques CPU nécessaires au HPA sont disponibles"
+  ],
+  "parameters": {
+    "targetDeployment": "data-collector",
+    "targetNamespace": "smartgrid-dev",
+    "initialReplicas": 1,
+    "minimumReplicas": 1,
+    "maximumReplicas": 5,
+    "targetReplicas": 3,
+    "scalingThresholdSeconds": 30
+  },
+  "metrics": [
+    "scaling_time_seconds",
+    "replicas_before",
+    "replicas_target",
+    "replicas_after",
+    "service_restored"
+  ],
+  "procedure": [
+    "Vérifier le nombre initial de réplicas",
+    "Enregistrer l'heure de début",
+    "Générer une charge contrôlée",
+    "Observer les changements du HPA",
+    "Attendre que le nombre cible de réplicas soit atteint",
+    "Calculer le temps de scalabilité",
+    "Tester la disponibilité du service",
+    "Exporter les états du HPA et des Pods"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "hpa-before.txt",
+    "hpa-observation.txt",
+    "hpa-after.txt",
+    "pods-before.txt",
+    "pods-after.txt",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}

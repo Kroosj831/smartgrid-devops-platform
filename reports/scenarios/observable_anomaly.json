@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "id": "observable_anomaly",
+  "title": "Anomalie observable",
+  "hypothesisIds": [
+    "H2"
+  ],
+  "purpose": "Vérifier la capacité du dispositif d'observabilité à détecter, identifier et documenter une anomalie contrôlée.",
+  "minimumValidRuns": 3,
+  "timeoutSeconds": 180,
+  "prerequisites": [
+    "Le nœud Kubernetes est Ready",
+    "Les microservices sont disponibles",
+    "Prometheus collecte les métriques applicatives",
+    "Les journaux Kubernetes sont accessibles",
+    "Le Dashboard DevOps est opérationnel"
+  ],
+  "parameters": {
+    "targetService": "api-gateway",
+    "targetNamespace": "smartgrid-dev",
+    "anomalyType": "invalid_request",
+    "injectedAnomalies": 10,
+    "detectionThresholdSeconds": 30,
+    "expectedDetectionRatePercent": 100
+  },
+  "metrics": [
+    "error_rate_percent",
+    "logs_available",
+    "metrics_available",
+    "anomaly_detection_rate_percent",
+    "detection_time_seconds",
+    "affected_service_identified",
+    "evidence_formats_complete"
+  ],
+  "procedure": [
+    "Vérifier l'état initial du service ciblé",
+    "Enregistrer l'heure de début de l'expérience",
+    "Injecter un nombre défini de requêtes invalides",
+    "Observer l'évolution du taux d'erreur",
+    "Rechercher l'anomalie dans les métriques Prometheus",
+    "Rechercher l'anomalie dans les journaux du service",
+    "Vérifier l'identification du service affecté",
+    "Mesurer le délai de détection",
+    "Calculer le taux de détection des anomalies",
+    "Exporter les métriques, journaux et preuves"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "injected-anomalies.txt",
+    "service-logs.txt",
+    "prometheus-evidence.json",
+    "detection-evidence.txt",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}

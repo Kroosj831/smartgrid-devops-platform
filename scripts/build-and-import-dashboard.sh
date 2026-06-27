@@ -1,39 +1,105 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -Eeuo pipefail
 
-echo "Construction et importation du Dashboard DevOps expérimental..."
+ROOT_DIR="$(
+  cd "$(dirname "${BASH_SOURCE[0]}")/.."
+  pwd
+)"
 
-echo "--------------------------------------------"
-echo "Build image: dashboard-api:latest"
-docker build -t dashboard-api:latest -f dashboard/dashboard-api/Dockerfile .
+cd "$ROOT_DIR"
 
-echo "Export image: dashboard-api"
-docker save dashboard-api:latest -o /tmp/dashboard-api.tar
+API_TAR="$(mktemp --suffix=.tar /tmp/dashboard-api.XXXXXX)"
+FRONTEND_TAR="$(mktemp --suffix=.tar /tmp/dashboard-frontend.XXXXXX)"
 
-echo "Import image into K3s: dashboard-api"
-sudo -n /usr/local/bin/k3s ctr images import /tmp/dashboard-api.tar
+cleanup() {
+  rm -f "$API_TAR" "$FRONTEND_TAR"
 
-rm /tmp/dashboard-api.tar
+  sudo systemctl stop docker.service docker.socket 2>/dev/null || true
+  sudo systemctl stop containerd.service 2>/dev/null || true
+}
 
-echo "--------------------------------------------"
-echo "Build image: dashboard-frontend:latest"
-docker build -t dashboard-frontend:latest -f dashboard/dashboard-frontend/Dockerfile .
+trap cleanup EXIT INT TERM
 
-echo "Export image: dashboard-frontend"
-docker save dashboard-frontend:latest -o /tmp/dashboard-frontend.tar
+for command_name in docker sudo
+do
+  if ! command -v "$command_name" >/dev/null 2>&1
+  then
+    echo "Commande manquante : $command_name" >&2
+    exit 1
+  fi
+done
 
-echo "Import image into K3s: dashboard-frontend"
-sudo -n /usr/local/bin/k3s ctr images import /tmp/dashboard-frontend.tar
+if [[ ! -x /usr/local/bin/k3s ]]
+then
+  echo "K3s est introuvable dans /usr/local/bin/k3s" >&2
+  exit 1
+fi
 
-rm /tmp/dashboard-frontend.tar
+echo "Validation des droits sudo..."
+sudo -v
 
-echo "--------------------------------------------"
-echo "Images dashboard disponibles dans Docker :"
-docker images | grep -E "dashboard-api|dashboard-frontend"
+echo "Démarrage temporaire de Docker..."
+sudo systemctl start docker.service
 
-echo "--------------------------------------------"
-echo "Images dashboard disponibles dans K3s :"
-sudo -n /usr/local/bin/k3s ctr images list | grep -E "dashboard-api|dashboard-frontend"
+for attempt in {1..30}
+do
+  if docker info >/dev/null 2>&1
+  then
+    break
+  fi
 
-echo "Dashboard construit et importé dans K3s."
+  if [[ "$attempt" -eq 30 ]]
+  then
+    echo "Docker n'est pas devenu opérationnel." >&2
+    exit 1
+  fi
+
+  sleep 2
+done
+
+echo "============================================"
+echo "Construction de dashboard-api:latest"
+
+docker build \
+  --progress=plain \
+  --tag dashboard-api:latest \
+  --file dashboard/dashboard-api/Dockerfile \
+  .
+
+echo "Export de dashboard-api..."
+docker save \
+  --output "$API_TAR" \
+  dashboard-api:latest
+
+echo "Import de dashboard-api dans K3s..."
+sudo /usr/local/bin/k3s ctr images import "$API_TAR"
+
+rm -f "$API_TAR"
+
+echo "============================================"
+echo "Construction de dashboard-frontend:latest"
+
+docker build \
+  --progress=plain \
+  --tag dashboard-frontend:latest \
+  --file dashboard/dashboard-frontend/Dockerfile \
+  .
+
+echo "Export de dashboard-frontend..."
+docker save \
+  --output "$FRONTEND_TAR" \
+  dashboard-frontend:latest
+
+echo "Import de dashboard-frontend dans K3s..."
+sudo /usr/local/bin/k3s ctr images import "$FRONTEND_TAR"
+
+rm -f "$FRONTEND_TAR"
+
+echo "============================================"
+echo "Images importées dans K3s :"
+
+sudo /usr/local/bin/k3s ctr images list |
+grep -E 'dashboard-api|dashboard-frontend'
+
+echo "Construction et importation terminées."

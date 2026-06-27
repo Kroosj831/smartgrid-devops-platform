@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "1.0",
+  "hypothesisId": "H1",
+  "title": "Automatisation du déploiement et de l'exploitation",
+  "evaluatedAt": "2026-06-21T13:40:00.905Z",
+  "minimumValidRunsPerScenario": 3,
+  "totalRunsFound": 0,
+  "totalValidRuns": 0,
+  "scenarioCoverage": {
+    "continuous_deployment": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    },
+    "controlled_failure": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    },
+    "scaling": {
+      "validRuns": 0,
+      "requiredRuns": 3,
+      "sufficient": false
+    }
+  },
+  "criteriaResults": [
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-C1",
+      "metric": "deployment_time_seconds",
+      "operator": "<=",
+      "threshold": 180,
+      "unit": "s",
+      "observed": null,
+      "aggregation": "median",
+      "sampleSize": 0,
+      "scenarios": [
+        "continuous_deployment"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "continuous_deployment"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-C2",
+      "metric": "deployment_failure_rate_percent",
+      "operator": "<=",
+      "threshold": 5,
+      "unit": "%",
+      "observed": null,
+      "aggregation": "rate",
+      "sampleSize": 0,
+      "scenarios": [
+        "continuous_deployment"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "continuous_deployment"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-C3",
+      "metric": "mttr_seconds",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "observed": null,
+      "aggregation": "median",
+      "sampleSize": 0,
+      "scenarios": [
+        "controlled_failure"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "controlled_failure"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-C4",
+      "metric": "scaling_time_seconds",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "observed": null,
+      "aggregation": "median",
+      "sampleSize": 0,
+      "scenarios": [
+        "scaling"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "scaling"
+      ],
+      "status": "NOT_MEASURED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-C5",
+      "metric": "service_restored",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": null,
+      "aggregation": "all",
+      "sampleSize": 0,
+      "scenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "scaling"
+      ],
+      "required": true,
+      "insufficientScenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "scaling"
+      ],
+      "status": "NOT_MEASURED"
+    }
+  ],
+  "verdict": "INDETERMINATE"
+}

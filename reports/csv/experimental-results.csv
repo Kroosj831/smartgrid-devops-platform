@@ -1,8 +1,8 @@
-scenario,metric,value,unit,threshold,status,timestamp
-high_load,total_requests,4638,requests,,measured,2026-06-17T12:18:04+00:00
-high_load,error_rate,0.00,percent,<1,validated,2026-06-17T12:18:04+00:00
-high_load,average_latency,16.13,ms,,measured,2026-06-17T12:18:04+00:00
-high_load,p95_latency,48.73,ms,<500,validated,2026-06-17T12:18:04+00:00
-controlled_failure,MTTR,23.220,seconds,<60,validated,2026-06-17T12:13:27+00:00
-dynamic_scaling,scaling_time,14.036,seconds,<60,validated,2026-06-17T12:38:22+00:00
-continuous_deployment,deployment_time,251,seconds,<180,rejected,2026-06-17T12:03:28+00:00
+hypothesis,scenario,metric,value,unit,threshold,status,interpretation
+H1,continuous_deployment,deployment_time_mean,44.099,seconds,<= 180,VALIDATED,Déploiement techniquement et fonctionnellement réussi dans les trois répétitions.
+H1,controlled_failure,mttr_mean,12.987,seconds,<= 60,VALIDATED,Service restauré dans les trois répétitions.
+H1,dynamic_scaling,scaling_time_mean,36.88,seconds,<= 30,VALIDATED_WITH_PERFORMANCE_VARIABILITY,"La cible de réplication a été atteinte dans les trois runs, mais la référence indicative n'a été respectée que dans un run sur trois."
+H2,integrated_observability_under_load,prometheus_service_coverage,100,percent,== 100,VALIDATED,Les cinq microservices disposent de données Prometheus.
+H2,integrated_observability_under_load,loki_service_coverage,100,percent,== 100,VALIDATED,Les cinq microservices disposent de journaux corrélés.
+H2,integrated_observability_under_load,request_id_correlation_coverage,100,percent,== 100,VALIDATED,La sonde officielle est corrélée dans les cinq services.
+H2,integrated_observability_under_load,maximum_visibility_delay,2000,milliseconds,<= 30000,VALIDATED,Les logs et les métriques deviennent visibles en 2 secondes au maximum.

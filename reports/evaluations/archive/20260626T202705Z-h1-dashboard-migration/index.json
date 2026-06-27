@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-26T20:14:30.751759+00:00",
+  "experimentResultsDirectory": "reports/experiments",
+  "totalRunsEvaluated": 3,
+  "runs": [
+    {
+      "runId": "H2-V2-RUN-01",
+      "hypothesisId": "H2",
+      "scenario": "integrated_observability_under_load",
+      "verdict": "VALIDATED",
+      "evaluationFile": "reports/evaluations/runs/H2-V2-RUN-01-evaluation.json"
+    },
+    {
+      "runId": "H2-V2-RUN-02",
+      "hypothesisId": "H2",
+      "scenario": "integrated_observability_under_load",
+      "verdict": "VALIDATED",
+      "evaluationFile": "reports/evaluations/runs/H2-V2-RUN-02-evaluation.json"
+    },
+    {
+      "runId": "H2-V2-RUN-03",
+      "hypothesisId": "H2",
+      "scenario": "integrated_observability_under_load",
+      "verdict": "VALIDATED",
+      "evaluationFile": "reports/evaluations/runs/H2-V2-RUN-03-evaluation.json"
+    }
+  ],
+  "hypotheses": {
+    "H1": {
+      "verdict": "INDETERMINATE",
+      "totalRunsFound": 0,
+      "totalValidRuns": 0,
+      "evaluationFile": "reports/evaluations/H1-evaluation.json",
+      "markdownFile": "reports/evaluations/H1-evaluation.md"
+    },
+    "H2": {
+      "verdict": "VALIDATED",
+      "totalRunsFound": 3,
+      "totalValidRuns": 3,
+      "evaluationFile": "reports/evaluations/H2-evaluation.json",
+      "markdownFile": "reports/evaluations/H2-evaluation.md"
+    }
+  }
+}

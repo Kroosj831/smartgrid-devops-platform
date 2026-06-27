@@ -1,0 +1,267 @@
+{
+  "schemaVersion": "1.0",
+  "hypothesisId": "H2",
+  "title": "Supervision et observabilité",
+  "statement": "La chaîne d'observabilité fondée sur Prometheus, Grafana, Alloy et Loki permet de centraliser des métriques et des journaux exploitables pour une requête traversant les cinq microservices Smart Grid.",
+  "evaluatedAt": "2026-06-26T20:14:30.751759+00:00",
+  "minimumValidRunsPerScenario": 3,
+  "totalRunsFound": 3,
+  "totalValidRuns": 3,
+  "scenarioCoverage": {
+    "integrated_observability_under_load": {
+      "validRuns": 3,
+      "requiredRuns": 3,
+      "sufficient": true
+    }
+  },
+  "criteriaResults": [
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A02",
+      "metric": "run_precondition_valid",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": true,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A03",
+      "metric": "prometheus_service_coverage_pct",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100,
+      "aggregation": "minimum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A04",
+      "metric": "loki_service_coverage_pct",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100,
+      "aggregation": "minimum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A05",
+      "metric": "request_id_correlation_coverage_pct",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100,
+      "aggregation": "minimum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A06",
+      "metric": "log_visibility_delay_ms",
+      "operator": "<=",
+      "threshold": 30000,
+      "unit": "ms",
+      "observed": 2000,
+      "aggregation": "maximum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A07",
+      "metric": "metric_visibility_delay_ms",
+      "operator": "<=",
+      "threshold": 30000,
+      "unit": "ms",
+      "observed": 2000,
+      "aggregation": "maximum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A08",
+      "metric": "observability_source_coverage_pct",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100,
+      "aggregation": "minimum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A09",
+      "metric": "artifact_completeness_pct",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100,
+      "aggregation": "minimum",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A10",
+      "metric": "designated_probe_valid",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": true,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H2",
+      "criterionId": "H2-V2-A11",
+      "metric": "canonical_runs_valid",
+      "operator": "==",
+      "threshold": 3,
+      "unit": "runs",
+      "observed": 3,
+      "aggregation": "count",
+      "sampleSize": 3,
+      "scenarios": [
+        "integrated_observability_under_load"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    }
+  ],
+  "supportingMetrics": {
+    "httpFailureRatePercent": {
+      "values": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean": 0.0,
+      "maximum": 0.0
+    },
+    "httpLatencyAverageMilliseconds": {
+      "values": [
+        42.11400090614195,
+        37.549757305172406,
+        41.071061151213165
+      ],
+      "mean": 40.24494,
+      "median": 41.071061,
+      "minimum": 37.549757,
+      "maximum": 42.114001,
+      "sampleStandardDeviation": 2.391639
+    },
+    "httpLatencyP95Milliseconds": {
+      "values": [
+        100.77714375,
+        86.97366854999973,
+        105.67004615000006
+      ],
+      "mean": 97.806953,
+      "median": 100.777144,
+      "minimum": 86.973669,
+      "maximum": 105.670046
+    },
+    "httpLatencyMaximumMilliseconds": {
+      "values": [
+        557.55077,
+        434.967994,
+        468.047066
+      ],
+      "mean": 486.855277,
+      "maximumObserved": 557.55077
+    }
+  },
+  "resourcesByService": {
+    "api-gateway": {
+      "observations": 3,
+      "meanCpuMillicores": 118.509036,
+      "meanMemoryMiB": 48.335208,
+      "totalRestartDelta": 0
+    },
+    "data-collector": {
+      "observations": 3,
+      "meanCpuMillicores": 29.880055,
+      "meanMemoryMiB": 45.169115,
+      "totalRestartDelta": 0
+    },
+    "iot-simulator": {
+      "observations": 3,
+      "meanCpuMillicores": 25.972002,
+      "meanMemoryMiB": 43.010521,
+      "totalRestartDelta": 0
+    },
+    "optimization-service": {
+      "observations": 3,
+      "meanCpuMillicores": 25.526296,
+      "meanMemoryMiB": 42.968437,
+      "totalRestartDelta": 0
+    },
+    "processing-service": {
+      "observations": 3,
+      "meanCpuMillicores": 24.911166,
+      "meanMemoryMiB": 43.546146,
+      "totalRestartDelta": 0
+    }
+  },
+  "validationScope": "observability_validation_under_constant_load_in_local_single_node_experimental_environment",
+  "decisionBasis": "all_three_canonical_runs_satisfied_acceptance_criteria_A02_to_A10",
+  "scientificVerdict": "supported",
+  "limitations": [
+    "Cluster K3s mono-nœud",
+    "Infrastructure locale virtualisée",
+    "Trois répétitions officielles",
+    "Charge constante limitée à 20 utilisateurs virtuels pendant 120 secondes",
+    "Une seule réplique par microservice et HPA désactivé",
+    "Absence de validation dans un cluster distribué multi-nœuds"
+  ],
+  "sourceSummary": "reports/hypotheses/H2/summary.json",
+  "verdict": "VALIDATED"
+}

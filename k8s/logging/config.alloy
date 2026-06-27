@@ -1,0 +1,80 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+discovery.kubernetes "smartgrid_pods" {
+  role = "pod"
+
+  namespaces {
+    names = ["smartgrid-dev"]
+  }
+}
+
+discovery.relabel "smartgrid_pods" {
+  targets = discovery.kubernetes.smartgrid_pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    action        = "keep"
+    regex         = "smartgrid-dev"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app"]
+    target_label  = "app"
+  }
+
+  rule {
+    target_label = "cluster"
+    replacement  = "smartgrid-devops-lab"
+  }
+}
+
+loki.source.kubernetes "smartgrid_pods" {
+  targets    = discovery.relabel.smartgrid_pods.output
+  forward_to = [loki.process.smartgrid.receiver]
+}
+
+loki.process "smartgrid" {
+  stage.json {
+    expressions = {
+      level        = "level",
+      event        = "event",
+      service      = "service",
+      anomaly_type = "anomaly_type",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level        = "",
+      event        = "",
+      service      = "",
+      anomaly_type = "",
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+  }
+}

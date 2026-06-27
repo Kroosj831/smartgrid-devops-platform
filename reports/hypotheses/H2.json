@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "1.0",
+  "id": "H2",
+  "axis": "supervision_observabilite",
+  "title": "Supervision et observabilité",
+  "researchQuestion": "Dans quelle mesure l'intégration de mécanismes de monitoring, de journalisation et d'un Dashboard DevOps permet-elle de centraliser les données opérationnelles, de détecter les anomalies, d'identifier les services affectés et de produire des résultats exploitables pour l'analyse expérimentale d'une architecture Smart Grid basée sur des microservices ?",
+  "statement": "L'intégration de Prometheus, Grafana, des journaux Kubernetes et du Dashboard DevOps permet d'améliorer la supervision de la plateforme en centralisant les métriques et les journaux, en rendant visibles les dégradations de performance et les défaillances, et en produisant des données exploitables pour le diagnostic et la validation expérimentale.",
+  "minimumValidRunsPerScenario": 3,
+  "scenarios": [
+    "nominal",
+    "high_load",
+    "observable_anomaly"
+  ],
+  "decisionRule": {
+    "type": "all_required_criteria",
+    "defaultAggregation": "median"
+  },
+  "criteria": [
+    {
+      "id": "H2-C1",
+      "metric": "monitoring_coverage_percent",
+      "description": "Pourcentage des microservices couverts par le dispositif de monitoring",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "aggregation": "latest",
+      "required": true,
+      "scenarios": [
+        "nominal"
+      ]
+    },
+    {
+      "id": "H2-C2",
+      "metric": "metrics_available",
+      "description": "Disponibilité effective des métriques pour les services supervisés",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "aggregation": "all",
+      "required": true,
+      "scenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ]
+    },
+    {
+      "id": "H2-C3",
+      "metric": "logs_available",
+      "description": "Disponibilité effective des journaux nécessaires au diagnostic",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "aggregation": "all",
+      "required": true,
+      "scenarios": [
+        "nominal",
+        "observable_anomaly"
+      ]
+    },
+    {
+      "id": "H2-C4",
+      "metric": "detection_time_seconds",
+      "description": "Temps écoulé entre l'apparition d'une anomalie et sa détection",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "aggregation": "median",
+      "required": true,
+      "scenarios": [
+        "observable_anomaly"
+      ]
+    },
+    {
+      "id": "H2-C5",
+      "metric": "affected_service_identified",
+      "description": "Capacité à identifier le service à l'origine de l'anomalie",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "aggregation": "all",
+      "required": true,
+      "scenarios": [
+        "observable_anomaly"
+      ]
+    },
+    {
+      "id": "H2-C6",
+      "metric": "evidence_formats_complete",
+      "description": "Disponibilité des preuves aux formats JSON, CSV, Markdown et TXT",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "aggregation": "all",
+      "required": true,
+      "scenarios": [
+        "nominal",
+        "high_load",
+        "observable_anomaly"
+      ]
+    },
+    {
+      "id": "H2-C7",
+      "metric": "anomaly_detection_rate_percent",
+      "description": "Pourcentage des anomalies injectées correctement détectées",
+      "operator": ">=",
+      "threshold": 100,
+      "unit": "%",
+      "aggregation": "mean",
+      "required": true,
+      "scenarios": [
+        "observable_anomaly"
+      ]
+    }
+  ],
+  "supportingMetrics": [
+    {
+      "metric": "latency_mean_ms",
+      "unit": "ms"
+    },
+    {
+      "metric": "latency_p95_ms",
+      "unit": "ms",
+      "referenceThreshold": 100
+    },
+    {
+      "metric": "error_rate_percent",
+      "unit": "%",
+      "referenceThreshold": 1
+    },
+    {
+      "metric": "cpu_average_percent",
+      "unit": "%"
+    },
+    {
+      "metric": "memory_average_mib",
+      "unit": "MiB"
+    }
+  ]
+}

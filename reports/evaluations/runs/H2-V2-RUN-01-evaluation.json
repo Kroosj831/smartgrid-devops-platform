@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "H2-V2-RUN-01",
+  "hypothesisId": "H2",
+  "scenario": "integrated_observability_under_load",
+  "experimentId": "H2-V2-RUN-01-20260626T104018Z",
+  "requestId": "H2-V2-RUN-01-20260626T104018Z-PROBE-001",
+  "valid": true,
+  "metrics": {
+    "httpRequestsTotal": 2312,
+    "httpFailureRatePct": 0.0,
+    "httpLatencyAverageMs": 42.11400090614195,
+    "httpLatencyP95Ms": 100.77714375,
+    "httpLatencyMaxMs": 557.55077,
+    "prometheusServiceCoveragePct": 100,
+    "lokiServiceCoveragePct": 100,
+    "requestIdCorrelationCoveragePct": 100,
+    "logVisibilityDelayMs": 1000,
+    "metricVisibilityDelayMs": 1000,
+    "observabilitySourceCoveragePct": 100,
+    "artifactCompletenessPct": 100
+  },
+  "verdict": "VALIDATED"
+}

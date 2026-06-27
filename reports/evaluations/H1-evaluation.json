@@ -1,0 +1,254 @@
+{
+  "schemaVersion": "1.0",
+  "hypothesisId": "H1",
+  "title": "Automatisation du déploiement, résilience et scalabilité",
+  "statement": "L'intégration d'un pipeline CI/CD à Kubernetes permet d'automatiser et de reproduire le déploiement des microservices, de restaurer les services après une panne contrôlée, d'adapter dynamiquement les réplicas et de maintenir ou rétablir leur disponibilité.",
+  "evaluatedAt": "2026-06-26T20:27:05.952476+00:00",
+  "minimumValidRunsPerScenario": 3,
+  "totalRunsFound": 9,
+  "totalValidRuns": 9,
+  "functionalSuccessRatePercent": 100.0,
+  "scenarioCoverage": {
+    "continuous_deployment": {
+      "validRuns": 3,
+      "requiredRuns": 3,
+      "sufficient": true
+    },
+    "controlled_failure": {
+      "validRuns": 3,
+      "requiredRuns": 3,
+      "sufficient": true
+    },
+    "dynamic_scaling": {
+      "validRuns": 3,
+      "requiredRuns": 3,
+      "sufficient": true,
+      "performanceReferenceMetRuns": 1,
+      "performanceReferenceSeconds": 30,
+      "performanceAssessment": "functionally_validated_with_performance_variability"
+    }
+  },
+  "criteriaResults": [
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A01",
+      "metric": "canonical_runs_preserved",
+      "operator": "==",
+      "threshold": 9,
+      "unit": "runs",
+      "observed": 9,
+      "aggregation": "count",
+      "sampleSize": 9,
+      "scenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "dynamic_scaling"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A02",
+      "metric": "technically_valid_runs",
+      "operator": "==",
+      "threshold": 9,
+      "unit": "runs",
+      "observed": 9,
+      "aggregation": "count",
+      "sampleSize": 9,
+      "scenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "dynamic_scaling"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A03",
+      "metric": "functional_success_rate_percent",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100.0,
+      "aggregation": "all",
+      "sampleSize": 9,
+      "scenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "dynamic_scaling"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A04",
+      "metric": "deployment_functional_success_rate_percent",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100.0,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "continuous_deployment"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A05",
+      "metric": "deployment_time_seconds",
+      "operator": "<=",
+      "threshold": 180,
+      "unit": "s",
+      "observed": 48.805,
+      "aggregation": "maximum",
+      "sampleSize": 3,
+      "scenarios": [
+        "continuous_deployment"
+      ],
+      "required": false,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A06",
+      "metric": "git_tree_invariant",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "observed": true,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "continuous_deployment"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A07",
+      "metric": "failure_recovery_success_rate_percent",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100.0,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "controlled_failure"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A08",
+      "metric": "mttr_seconds",
+      "operator": "<=",
+      "threshold": 60,
+      "unit": "s",
+      "observed": 12.993,
+      "aggregation": "maximum",
+      "sampleSize": 3,
+      "scenarios": [
+        "controlled_failure"
+      ],
+      "required": false,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A09",
+      "metric": "dynamic_scaling_functional_success_rate_percent",
+      "operator": "==",
+      "threshold": 100,
+      "unit": "%",
+      "observed": 100.0,
+      "aggregation": "all",
+      "sampleSize": 3,
+      "scenarios": [
+        "dynamic_scaling"
+      ],
+      "required": true,
+      "status": "VALIDATED"
+    },
+    {
+      "hypothesisId": "H1",
+      "criterionId": "H1-A10",
+      "metric": "scaling_time_reference_met_runs",
+      "operator": "==",
+      "threshold": 3,
+      "unit": "runs",
+      "observed": 1,
+      "aggregation": "count",
+      "sampleSize": 3,
+      "scenarios": [
+        "dynamic_scaling"
+      ],
+      "required": false,
+      "status": "REJECTED",
+      "interpretation": "La scalabilité est fonctionnellement validée, mais la référence indicative de 30 secondes n'a été respectée que dans une exécution sur trois."
+    }
+  ],
+  "components": {
+    "dynamicScaling": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanSeconds": 36.88,
+      "medianSeconds": 41.138,
+      "minimumSeconds": 27.957,
+      "maximumSeconds": 41.546,
+      "sampleStandardDeviationSeconds": 7.731,
+      "referenceSeconds": 30,
+      "referenceMetRuns": 1,
+      "decision": "functionally_validated_with_performance_variability"
+    },
+    "failureRecovery": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanMttrSeconds": 12.987,
+      "medianMttrSeconds": 12.989,
+      "minimumMttrSeconds": 12.978,
+      "maximumMttrSeconds": 12.993,
+      "sampleStandardDeviationSeconds": 0.008,
+      "referenceSeconds": 60,
+      "referenceMetRuns": 3,
+      "decision": "validated"
+    },
+    "continuousDeployment": {
+      "officialRuns": 3,
+      "technicallyValidRuns": 3,
+      "functionalSuccessRatePercent": 100.0,
+      "meanSeconds": 44.099,
+      "medianSeconds": 47.855,
+      "minimumSeconds": 35.636,
+      "maximumSeconds": 48.805,
+      "sampleStandardDeviationSeconds": 7.344,
+      "referenceSeconds": 180,
+      "referenceMetRuns": 3,
+      "treeInvariant": true,
+      "decision": "validated"
+    }
+  },
+  "thresholdInterpretation": "The temporal references are indicative and do not independently determine hypothesis validation.",
+  "validationScope": "functional_validation_in_local_single_node_experimental_environment",
+  "limitations": [
+    "Single-node K3s cluster",
+    "Local virtualized infrastructure",
+    "Limited number of official repetitions",
+    "Observed variability in scaling and deployment times"
+  ],
+  "decisionBasis": "all_nine_canonical_runs_were_technically_valid_and_functionally_successful",
+  "scientificVerdict": "supported",
+  "sourceSummary": "reports/hypotheses/H1/summary.json",
+  "verdict": "VALIDATED"
+}

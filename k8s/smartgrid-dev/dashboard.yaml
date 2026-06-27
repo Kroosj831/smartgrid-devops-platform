@@ -1,17 +1,4 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dashboard-data-pvc
-  namespace: smartgrid-dev
-spec:
-  storageClassName: local-path
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dashboard-api-sa
@@ -23,15 +10,32 @@ metadata:
   name: dashboard-api-role
   namespace: smartgrid-dev
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "endpoints"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["autoscaling"]
-    resources: ["horizontalpodautoscalers"]
-    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -43,9 +47,9 @@ subjects:
     name: dashboard-api-sa
     namespace: smartgrid-dev
 roleRef:
+  apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: dashboard-api-role
-  apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -53,7 +57,10 @@ metadata:
   name: dashboard-api
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: dashboard-api
@@ -63,38 +70,72 @@ spec:
         app: dashboard-api
     spec:
       serviceAccountName: dashboard-api-sa
+      automountServiceAccountToken: true
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: dashboard-api
-          image: dashboard-api:latest
+          image: dashboard-api:filesystem-v1
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 4000
+            - name: http
+              containerPort: 4000
+              protocol: TCP
           env:
             - name: PORT
               value: "4000"
             - name: SMARTGRID_NAMESPACE
               value: "smartgrid-dev"
-            - name: DB_PATH
-              value: "/data/dashboard.sqlite"
+            - name: REPORTS_DIR
+              value: "/reports"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
-            - name: dashboard-data
-              mountPath: /data
+            - name: dashboard-reports
+              mountPath: /reports
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /dashboard/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: /dashboard/health
-              port: 4000
-            initialDelaySeconds: 5
+              port: http
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /dashboard/health
-              port: 4000
-            initialDelaySeconds: 15
+              port: http
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
-        - name: dashboard-data
-          persistentVolumeClaim:
-            claimName: dashboard-data-pvc
+        - name: dashboard-reports
+          hostPath:
+            path: /home/serveur_devops/smartgrid-devops-platform/reports
+            type: Directory
 ---
 apiVersion: v1
 kind: Service
@@ -108,8 +149,9 @@ spec:
   ports:
     - name: http
       port: 4000
-      targetPort: 4000
+      targetPort: http
       nodePort: 30574
+      protocol: TCP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -117,7 +159,8 @@ metadata:
   name: dashboard-frontend
   namespace: smartgrid-dev
 spec:
-  replicas: 1
+  replicas: 0
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: dashboard-frontend
@@ -126,12 +169,58 @@ spec:
       labels:
         app: dashboard-frontend
     spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
       containers:
         - name: dashboard-frontend
-          image: dashboard-frontend:latest
+          image: dashboard-frontend:scientific-v1
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: nginx-tmp
+          emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
@@ -145,5 +234,6 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: http
       nodePort: 30573
+      protocol: TCP

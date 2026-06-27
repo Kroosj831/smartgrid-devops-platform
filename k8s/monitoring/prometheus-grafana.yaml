@@ -1,51 +1,96 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: smartgrid-devops
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-config
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: smartgrid-devops
 data:
   prometheus.yml: |
     global:
       scrape_interval: 5s
+      scrape_timeout: 4s
       evaluation_interval: 5s
+
+    storage:
+      tsdb:
+        retention:
+          time: 7d
+          size: 3GB
 
     scrape_configs:
       - job_name: "prometheus"
         static_configs:
-          - targets: ["localhost:9090"]
+          - targets:
+              - "localhost:9090"
 
       - job_name: "smartgrid-api-gateway"
         metrics_path: /metrics
         static_configs:
-          - targets: ["api-gateway.smartgrid-dev.svc.cluster.local:3000"]
+          - targets:
+              - "api-gateway.smartgrid-dev.svc.cluster.local:3000"
 
       - job_name: "smartgrid-iot-simulator"
         metrics_path: /metrics
         static_configs:
-          - targets: ["iot-simulator.smartgrid-dev.svc.cluster.local:3001"]
+          - targets:
+              - "iot-simulator.smartgrid-dev.svc.cluster.local:3001"
 
       - job_name: "smartgrid-data-collector"
         metrics_path: /metrics
         static_configs:
-          - targets: ["data-collector.smartgrid-dev.svc.cluster.local:3002"]
+          - targets:
+              - "data-collector.smartgrid-dev.svc.cluster.local:3002"
 
       - job_name: "smartgrid-processing-service"
         metrics_path: /metrics
         static_configs:
-          - targets: ["processing-service.smartgrid-dev.svc.cluster.local:3003"]
+          - targets:
+              - "processing-service.smartgrid-dev.svc.cluster.local:3003"
 
       - job_name: "smartgrid-optimization-service"
         metrics_path: /metrics
         static_configs:
-          - targets: ["optimization-service.smartgrid-dev.svc.cluster.local:3004"]
+          - targets:
+              - "optimization-service.smartgrid-dev.svc.cluster.local:3004"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: smartgrid-devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: smartgrid-devops
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prometheus
@@ -53,34 +98,91 @@ spec:
     metadata:
       labels:
         app: prometheus
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/part-of: smartgrid-devops
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: prometheus
-          image: prom/prometheus:latest
+          image: prom/prometheus:v3.12.0
           imagePullPolicy: IfNotPresent
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
             - "--web.enable-lifecycle"
           ports:
-            - containerPort: 9090
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 45
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
-            - name: prometheus-config-volume
+            - name: prometheus-config
               mountPath: /etc/prometheus
-            - name: prometheus-storage
+              readOnly: true
+            - name: prometheus-data
               mountPath: /prometheus
+            - name: prometheus-tmp
+              mountPath: /tmp
       volumes:
-        - name: prometheus-config-volume
+        - name: prometheus-config
           configMap:
             name: prometheus-config
-        - name: prometheus-storage
-          emptyDir: {}
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+        - name: prometheus-tmp
+          emptyDir:
+            sizeLimit: 128Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
   namespace: monitoring
+  labels:
+    app: prometheus
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: smartgrid-devops
 spec:
   type: NodePort
   selector:
@@ -88,33 +190,66 @@ spec:
   ports:
     - name: http
       port: 9090
-      targetPort: 9090
+      targetPort: http
       nodePort: 30090
+      protocol: TCP
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasource
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: smartgrid-devops
 data:
   datasource.yaml: |
     apiVersion: 1
 
+    deleteDatasources:
+      - name: Prometheus
+        orgId: 1
+
     datasources:
       - name: Prometheus
+        uid: prometheus
         type: prometheus
         access: proxy
         url: http://prometheus.monitoring.svc.cluster.local:9090
         isDefault: true
-        editable: true
+        editable: false
+        jsonData:
+          timeInterval: 5s
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: smartgrid-devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: smartgrid-devops
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: grafana
@@ -122,33 +257,120 @@ spec:
     metadata:
       labels:
         app: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: smartgrid-devops
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: grafana
-          image: grafana/grafana:latest
+          image: grafana/grafana:13.0.2
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+              protocol: TCP
           env:
             - name: GF_SECURITY_ADMIN_USER
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin
+                  key: username
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin
+                  key: password
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_PLUGINS_PREINSTALL_DISABLED
+              value: "true"
+            - name: GF_PLUGINS_PREINSTALL_AUTO_UPDATE
+              value: "false"
+            - name: GF_PLUGINS_PLUGIN_ADMIN_ENABLED
+              value: "false"
+            - name: GF_ANALYTICS_CHECK_FOR_UPDATES
+              value: "false"
+            - name: GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES
+              value: "false"
+            - name: GF_PATHS_DATA
+              value: /var/lib/grafana
+            - name: GF_PATHS_LOGS
+              value: /var/lib/grafana/log
+            - name: GF_PATHS_PLUGINS
+              value: /var/lib/grafana/plugins
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
-            - name: grafana-datasource-volume
+            - name: grafana-datasource
               mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            - name: grafana-tmp
+              mountPath: /tmp
       volumes:
-        - name: grafana-datasource-volume
+        - name: grafana-datasource
           configMap:
             name: grafana-datasource
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-data
+        - name: grafana-tmp
+          emptyDir:
+            sizeLimit: 128Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
   namespace: monitoring
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: smartgrid-devops
 spec:
   type: NodePort
   selector:
@@ -156,5 +378,6 @@ spec:
   ports:
     - name: http
       port: 3000
-      targetPort: 3000
+      targetPort: http
       nodePort: 30300
+      protocol: TCP

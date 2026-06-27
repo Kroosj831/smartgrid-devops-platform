@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "H1-SCALING-RUN-02",
+  "hypothesisId": "H1",
+  "scenario": "dynamic_scaling",
+  "technicallyValid": true,
+  "functionalSuccess": true,
+  "performanceReferenceMet": true,
+  "sourceDecision": "validated",
+  "metrics": {
+    "scalingTimeSeconds": 27.957,
+    "referenceSeconds": 30.0,
+    "referenceMet": true,
+    "targetReached": true
+  },
+  "sourceArtifact": "reports/experiments/scaling/H1-SCALING-RUN-02/result.json",
+  "verdict": "VALIDATED"
+}

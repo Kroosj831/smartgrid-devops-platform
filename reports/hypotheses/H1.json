@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0",
+  "id": "H1",
+  "axis": "automatisation_deploiement_exploitation",
+  "title": "Automatisation du déploiement et de l'exploitation",
+  "researchQuestion": "Dans quelle mesure l'intégration d'une chaîne CI/CD automatisée et de Kubernetes permet-elle de réduire le temps et les échecs de déploiement, d'assurer la récupération des services après une panne et d'adapter les ressources de l'architecture Smart Grid aux variations de charge ?",
+  "statement": "L'intégration d'une chaîne CI/CD automatisée et de Kubernetes permet d'améliorer l'exploitation opérationnelle de l'architecture Smart Grid en maintenant le temps et le taux d'échec des déploiements sous les seuils définis, en assurant la restauration automatique d'un service après une panne et en adaptant le nombre de réplicas à une augmentation de la charge.",
+  "minimumValidRunsPerScenario": 3,
+  "scenarios": [
+    "continuous_deployment",
+    "controlled_failure",
+    "scaling"
+  ],
+  "decisionRule": {
+    "type": "all_required_criteria",
+    "defaultAggregation": "median"
+  },
+  "criteria": [
+    {
+      "id": "H1-C1",
+      "metric": "deployment_time_seconds",
+      "description": "Durée totale du déploiement automatisé",
+      "operator": "<=",
+      "threshold": 180,
+      "unit": "s",
+      "aggregation": "median",
+      "required": true,
+      "scenarios": [
+        "continuous_deployment"
+      ]
+    },
+    {
+      "id": "H1-C2",
+      "metric": "deployment_failure_rate_percent",
+      "description": "Pourcentage de déploiements terminés en échec",
+      "operator": "<=",
+      "threshold": 5,
+      "unit": "%",
+      "aggregation": "rate",
+      "required": true,
+      "scenarios": [
+        "continuous_deployment"
+      ]
+    },
+    {
+      "id": "H1-C3",
+      "metric": "mttr_seconds",
+      "description": "Temps nécessaire à la restauration d'un service après une panne contrôlée",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "aggregation": "median",
+      "required": true,
+      "scenarios": [
+        "controlled_failure"
+      ]
+    },
+    {
+      "id": "H1-C4",
+      "metric": "scaling_time_seconds",
+      "description": "Temps nécessaire à Kubernetes pour atteindre le nombre de réplicas attendu",
+      "operator": "<=",
+      "threshold": 30,
+      "unit": "s",
+      "aggregation": "median",
+      "required": true,
+      "scenarios": [
+        "scaling"
+      ]
+    },
+    {
+      "id": "H1-C5",
+      "metric": "service_restored",
+      "description": "Disponibilité effective du service après la récupération ou le déploiement",
+      "operator": "==",
+      "threshold": true,
+      "unit": "boolean",
+      "aggregation": "all",
+      "required": true,
+      "scenarios": [
+        "continuous_deployment",
+        "controlled_failure",
+        "scaling"
+      ]
+    }
+  ]
+}

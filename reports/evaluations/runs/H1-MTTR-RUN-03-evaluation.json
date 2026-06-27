@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "H1-MTTR-RUN-03",
+  "hypothesisId": "H1",
+  "scenario": "controlled_failure",
+  "technicallyValid": true,
+  "functionalSuccess": true,
+  "performanceReferenceMet": true,
+  "sourceDecision": "valid",
+  "metrics": {
+    "mttrSeconds": 12.993,
+    "referenceSeconds": 60.0,
+    "referenceMet": true,
+    "serviceRecovered": true
+  },
+  "sourceArtifact": "reports/experiments/failure/H1-MTTR-RUN-03/result.json",
+  "verdict": "VALIDATED"
+}

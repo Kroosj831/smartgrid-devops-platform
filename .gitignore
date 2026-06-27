@@ -9,3 +9,34 @@ _work/
 actions-runner/
 _work/
 *.tar.gz
+
+# BEGIN FINAL SCIENTIFIC DASHBOARD
+
+# Dépendances et builds
+**/node_modules/
+dashboard/*/dist/
+
+# Sauvegardes locales et anciennes versions
+*.bak
+*.before-*
+*before-migration*
+
+# Données temporaires
+/checksums.sha256
+tests/k6/summary.json
+reports/csv/results.csv
+reports/json/results.jsonl
+reports/markdown/report.md
+
+# Rapports volumineux ou dépendants de la machine
+reports/config-backups/
+reports/diagnostics/
+reports/experiments/
+reports/evidence/
+reports/final/archive/
+
+# Configurations locales potentiellement sensibles
+scripts/config.env
+scripts/experimental-environment.env
+
+# END FINAL SCIENTIFIC DASHBOARD

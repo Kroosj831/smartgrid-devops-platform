@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "id": "controlled_failure",
+  "title": "Panne contrôlée d'un microservice",
+  "hypothesisIds": [
+    "H1"
+  ],
+  "purpose": "Mesurer la capacité de Kubernetes à restaurer automatiquement un microservice après la suppression volontaire de son Pod.",
+  "minimumValidRuns": 3,
+  "timeoutSeconds": 180,
+  "prerequisites": [
+    "Le nœud Kubernetes est Ready",
+    "Le service cible est Running et Ready",
+    "Le Deployment possède au moins un replica",
+    "Les métriques et journaux sont accessibles"
+  ],
+  "parameters": {
+    "targetDeployment": "data-collector",
+    "targetNamespace": "smartgrid-dev",
+    "recoveryThresholdSeconds": 30
+  },
+  "metrics": [
+    "mttr_seconds",
+    "service_restored",
+    "pod_recreated",
+    "service_available_after_recovery"
+  ],
+  "procedure": [
+    "Vérifier que le service cible est initialement disponible",
+    "Identifier le Pod appartenant au Deployment ciblé",
+    "Enregistrer l'heure de début de la panne",
+    "Supprimer volontairement le Pod",
+    "Observer la création du Pod de remplacement",
+    "Attendre que le nouveau Pod soit déclaré Ready",
+    "Tester à nouveau l'endpoint de santé du service",
+    "Calculer le temps moyen de récupération",
+    "Exporter les événements Kubernetes et les preuves"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "pods-before.txt",
+    "pods-after.txt",
+    "events.txt",
+    "service-health-after.txt",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}

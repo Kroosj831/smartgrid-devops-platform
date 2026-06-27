@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nominal",
+  "title": "Fonctionnement nominal",
+  "hypothesisIds": [
+    "H2"
+  ],
+  "purpose": "Établir l'état de référence de la plateforme lorsque tous les services fonctionnent normalement.",
+  "minimumValidRuns": 3,
+  "durationSeconds": 120,
+  "prerequisites": [
+    "Le nœud Kubernetes est Ready",
+    "Les cinq microservices sont déployés",
+    "Prometheus est opérationnel",
+    "Les endpoints /health et /metrics sont accessibles"
+  ],
+  "parameters": {
+    "expectedMicroservices": 5,
+    "expectedReplicasPerService": 1,
+    "observationDurationSeconds": 120
+  },
+  "metrics": [
+    "monitoring_coverage_percent",
+    "metrics_available",
+    "logs_available",
+    "latency_mean_ms",
+    "latency_p95_ms",
+    "error_rate_percent",
+    "cpu_average_percent",
+    "memory_average_mib",
+    "evidence_formats_complete"
+  ],
+  "procedure": [
+    "Vérifier l'état du nœud Kubernetes",
+    "Vérifier l'état de tous les Pods",
+    "Tester les endpoints de santé",
+    "Vérifier les cibles Prometheus",
+    "Collecter les métriques pendant la durée définie",
+    "Exporter les états, métriques et journaux"
+  ],
+  "expectedEvidence": [
+    "result.json",
+    "metrics.csv",
+    "summary.md",
+    "execution.log",
+    "pods-before.txt",
+    "pods-after.txt",
+    "prometheus-targets.json",
+    "environment.json",
+    "checksums.sha256"
+  ]
+}
