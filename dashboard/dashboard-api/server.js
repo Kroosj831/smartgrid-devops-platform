@@ -484,16 +484,6 @@ function parseLabeledMetricSamples(
   metricsText,
   metricName
 ) {
-  const pattern =
-    new RegExp(
-      "^" +
-      metricName +
-      "\\\\{([^}]*)\\\\}" +
-      "\\\\s+" +
-      "([-+0-9.eE]+)" +
-      "$"
-    );
-
   return String(
     metricsText || ""
   )
@@ -512,16 +502,19 @@ function parseLabeledMetricSamples(
       (line) => {
         const match =
           line.match(
-            pattern
+            /^([A-Za-z_:][A-Za-z0-9_:]*)\{([^}]*)\}\s+([-+0-9.eE]+)(?:\s+\d+)?$/
           );
 
-        if (!match) {
+        if (
+          !match ||
+          match[1] !== metricName
+        ) {
           return null;
         }
 
         const value =
           Number(
-            match[2]
+            match[3]
           );
 
         if (
@@ -533,7 +526,7 @@ function parseLabeledMetricSamples(
         return {
           labels:
             parsePrometheusLabels(
-              match[1]
+              match[2]
             ),
 
           value
