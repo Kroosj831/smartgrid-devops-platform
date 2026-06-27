@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "url";
 import * as k8s from "@kubernetes/client-node";
 
@@ -46,6 +46,52 @@ const DEFAULT_SERVICES = [
     url: "http://optimization-service:3004/health"
   }
 ];
+
+const DEMO_API_GATEWAY_URL =
+  String(
+    process.env.DEMO_API_GATEWAY_URL ||
+    "http://api-gateway:3000"
+  ).replace(
+    /\/+$/,
+    ""
+  );
+
+
+const DEMO_REQUEST_TIMEOUT_MS =
+  Number(
+    process.env.DEMO_REQUEST_TIMEOUT_MS ||
+    30000
+  );
+
+
+const DEMO_METRICS_TIMEOUT_MS =
+  Number(
+    process.env.DEMO_METRICS_TIMEOUT_MS ||
+    5000
+  );
+
+
+const DEMO_METRIC_SERVICES =
+  DEFAULT_SERVICES.map(
+    (service) => ({
+      id: service.name,
+      label:
+        service.name
+          .split("-")
+          .map(
+            (part) =>
+              part.charAt(0).toUpperCase() +
+              part.slice(1)
+          )
+          .join(" "),
+      metricsUrl:
+        service.url.replace(
+          /\/health$/,
+          "/metrics"
+        )
+    })
+  );
+
 
 
 function asyncRoute(handler) {
@@ -271,6 +317,487 @@ async function checkServices(services) {
   return Promise.all(
     services.map(checkSingleService)
   );
+}
+
+
+
+async function fetchWithTimeout(
+  url,
+  options = {},
+  timeoutMs = 5000
+) {
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () => controller.abort(),
+      timeoutMs
+    );
+
+  try {
+    return await fetch(
+      url,
+      {
+        ...options,
+        signal: controller.signal
+      }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+
+async function readResponsePayload(
+  upstreamResponse
+) {
+  const contentType =
+    upstreamResponse.headers.get(
+      "content-type"
+    ) || "";
+
+  const rawContent =
+    await upstreamResponse.text();
+
+  if (
+    contentType.includes(
+      "application/json"
+    )
+  ) {
+    try {
+      return JSON.parse(
+        rawContent
+      );
+    } catch {
+      return {
+        error:
+          "Réponse JSON invalide",
+        rawContent
+      };
+    }
+  }
+
+  try {
+    return JSON.parse(
+      rawContent
+    );
+  } catch {
+    return {
+      rawContent
+    };
+  }
+}
+
+
+function normalizeDemoIdentifier(
+  value,
+  fallback
+) {
+  const identifier =
+    String(
+      value || fallback
+    ).trim();
+
+  if (
+    !/^[A-Za-z0-9._:-]{1,160}$/
+      .test(identifier)
+  ) {
+    return null;
+  }
+
+  return identifier;
+}
+
+
+function parseMetricValues(
+  metricsText,
+  metricName
+) {
+  return String(
+    metricsText || ""
+  )
+    .split(/\r?\n/)
+    .filter(
+      (line) =>
+        line.startsWith(
+          `${metricName}{`
+        ) ||
+        line.startsWith(
+          `${metricName} `
+        )
+    )
+    .map(
+      (line) =>
+        Number(
+          line
+            .trim()
+            .split(/\s+/)
+            .at(-1)
+        )
+    )
+    .filter(
+      (value) =>
+        Number.isFinite(value)
+    );
+}
+
+
+function sumMetricValues(
+  metricsText,
+  metricName
+) {
+  return parseMetricValues(
+    metricsText,
+    metricName
+  ).reduce(
+    (total, value) =>
+      total + value,
+    0
+  );
+}
+
+
+function firstMetricValue(
+  metricsText,
+  metricName
+) {
+  const values =
+    parseMetricValues(
+      metricsText,
+      metricName
+    );
+
+  return values.length
+    ? values[0]
+    : null;
+}
+
+
+function roundMetric(
+  value,
+  precision = 6
+) {
+  const number =
+    Number(value);
+
+  if (
+    !Number.isFinite(number)
+  ) {
+    return null;
+  }
+
+  return Number(
+    number.toFixed(
+      precision
+    )
+  );
+}
+
+
+function parseServiceMetrics(
+  metricsText
+) {
+  const cpuUserSeconds =
+    sumMetricValues(
+      metricsText,
+      "process_cpu_user_seconds_total"
+    );
+
+  const cpuSystemSeconds =
+    sumMetricValues(
+      metricsText,
+      "process_cpu_system_seconds_total"
+    );
+
+  const memoryBytes =
+    firstMetricValue(
+      metricsText,
+      "process_resident_memory_bytes"
+    );
+
+  const heapUsedBytes =
+    firstMetricValue(
+      metricsText,
+      "nodejs_heap_size_used_bytes"
+    );
+
+  const httpRequestsTotal =
+    sumMetricValues(
+      metricsText,
+      "http_requests_total"
+    );
+
+  return {
+    cpuUserSeconds:
+      roundMetric(
+        cpuUserSeconds
+      ),
+
+    cpuSystemSeconds:
+      roundMetric(
+        cpuSystemSeconds
+      ),
+
+    cpuSecondsTotal:
+      roundMetric(
+        cpuUserSeconds +
+        cpuSystemSeconds
+      ),
+
+    memoryBytes:
+      memoryBytes === null
+        ? null
+        : Math.round(
+            memoryBytes
+          ),
+
+    memoryMiB:
+      memoryBytes === null
+        ? null
+        : roundMetric(
+            memoryBytes /
+            (1024 * 1024),
+            3
+          ),
+
+    heapUsedBytes:
+      heapUsedBytes === null
+        ? null
+        : Math.round(
+            heapUsedBytes
+          ),
+
+    heapUsedMiB:
+      heapUsedBytes === null
+        ? null
+        : roundMetric(
+            heapUsedBytes /
+            (1024 * 1024),
+            3
+          ),
+
+    httpRequestsTotal:
+      roundMetric(
+        httpRequestsTotal,
+        0
+      )
+  };
+}
+
+
+async function collectSingleDemoMetric(
+  service
+) {
+  const startedAt =
+    process.hrtime.bigint();
+
+  try {
+    const upstreamResponse =
+      await fetchWithTimeout(
+        service.metricsUrl,
+        {
+          headers: {
+            accept:
+              "text/plain"
+          }
+        },
+        DEMO_METRICS_TIMEOUT_MS
+      );
+
+    const metricsText =
+      await upstreamResponse.text();
+
+    if (
+      !upstreamResponse.ok
+    ) {
+      throw new Error(
+        `HTTP ${upstreamResponse.status}`
+      );
+    }
+
+    const scrapeDurationMs =
+      Number(
+        process.hrtime.bigint() -
+        startedAt
+      ) / 1_000_000;
+
+    return {
+      id:
+        service.id,
+
+      label:
+        service.label,
+
+      status:
+        "UP",
+
+      metricsUrl:
+        service.metricsUrl,
+
+      scrapeDurationMs:
+        roundMetric(
+          scrapeDurationMs,
+          3
+        ),
+
+      ...parseServiceMetrics(
+        metricsText
+      ),
+
+      error:
+        null
+    };
+  } catch (error) {
+    const scrapeDurationMs =
+      Number(
+        process.hrtime.bigint() -
+        startedAt
+      ) / 1_000_000;
+
+    return {
+      id:
+        service.id,
+
+      label:
+        service.label,
+
+      status:
+        "DOWN",
+
+      metricsUrl:
+        service.metricsUrl,
+
+      scrapeDurationMs:
+        roundMetric(
+          scrapeDurationMs,
+          3
+        ),
+
+      cpuUserSeconds:
+        null,
+
+      cpuSystemSeconds:
+        null,
+
+      cpuSecondsTotal:
+        null,
+
+      memoryBytes:
+        null,
+
+      memoryMiB:
+        null,
+
+      heapUsedBytes:
+        null,
+
+      heapUsedMiB:
+        null,
+
+      httpRequestsTotal:
+        null,
+
+      error:
+        error.name ===
+        "AbortError"
+          ? "Timeout"
+          : error.message
+    };
+  }
+}
+
+
+async function collectDemoMetrics() {
+  const sampledAt =
+    new Date().toISOString();
+
+  const services =
+    await Promise.all(
+      DEMO_METRIC_SERVICES.map(
+        collectSingleDemoMetric
+      )
+    );
+
+  return {
+    sampledAt,
+
+    source:
+      "direct-service-scrape",
+
+    scope:
+      "current-process-state",
+
+    services,
+
+    summary: {
+      totalServices:
+        services.length,
+
+      availableServices:
+        services.filter(
+          (service) =>
+            service.status === "UP"
+        ).length,
+
+      unavailableServices:
+        services.filter(
+          (service) =>
+            service.status !== "UP"
+        ).length,
+
+      totalMemoryMiB:
+        roundMetric(
+          services.reduce(
+            (total, service) =>
+              total +
+              Number(
+                service.memoryMiB || 0
+              ),
+            0
+          ),
+          3
+        ),
+
+      totalCpuSeconds:
+        roundMetric(
+          services.reduce(
+            (total, service) =>
+              total +
+              Number(
+                service.cpuSecondsTotal ||
+                0
+              ),
+            0
+          )
+        ),
+
+      totalHttpRequests:
+        roundMetric(
+          services.reduce(
+            (total, service) =>
+              total +
+              Number(
+                service.httpRequestsTotal ||
+                0
+              ),
+            0
+          ),
+          0
+        )
+    },
+
+    interpretation: {
+      cpu:
+        "Temps CPU cumulatif du processus depuis son démarrage.",
+
+      memory:
+        "Mémoire résidente observée au moment de l’échantillonnage.",
+
+      requests:
+        "Nombre cumulatif de requêtes HTTP traité par le service."
+    }
+  };
 }
 
 
@@ -1582,6 +2109,291 @@ export function createDashboardApp({
         )
       );
     }
+  );
+
+
+  app.get(
+    "/api/demo/config",
+    (request, response) => {
+      response.setHeader(
+        "Cache-Control",
+        "no-store"
+      );
+
+      response.json({
+        enabled: true,
+        scientificResultsModified:
+          false,
+        gatewayUrl:
+          DEMO_API_GATEWAY_URL,
+        maximumDelayMs:
+          2000,
+        maximumRecommendedRequests:
+          20,
+        maximumRecommendedConcurrency:
+          5,
+        metricsSamplingRecommendationMs:
+          500,
+        timestamp:
+          new Date().toISOString()
+      });
+    }
+  );
+
+
+  app.post(
+    "/api/demo/simulate",
+    asyncRoute(
+      async (
+        request,
+        response
+      ) => {
+        const generatedRequestId =
+          `DEMO-DASHBOARD-${Date.now()}-` +
+          randomUUID()
+            .replaceAll("-", "")
+            .slice(0, 8);
+
+        const requestId =
+          normalizeDemoIdentifier(
+            request.body?.requestId,
+            generatedRequestId
+          );
+
+        const experimentId =
+          normalizeDemoIdentifier(
+            request.body?.experimentId,
+            "DEMO-DASHBOARD-LIVE"
+          );
+
+        if (
+          !requestId ||
+          !experimentId
+        ) {
+          return response
+            .status(400)
+            .json({
+              error:
+                "requestId ou experimentId invalide",
+              timestamp:
+                new Date().toISOString()
+            });
+        }
+
+        const requestedDelay =
+          Number(
+            request.body?.demoDelayMs ||
+            0
+          );
+
+        const demoDelayMs =
+          Number.isFinite(
+            requestedDelay
+          )
+            ? Math.min(
+                Math.max(
+                  Math.floor(
+                    requestedDelay
+                  ),
+                  0
+                ),
+                2000
+              )
+            : 0;
+
+        const upstreamResponse =
+          await fetchWithTimeout(
+            `${DEMO_API_GATEWAY_URL}` +
+            "/smartgrid/simulate",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "content-type":
+                  "application/json",
+
+                "x-request-id":
+                  requestId,
+
+                "x-experiment-id":
+                  experimentId,
+
+                "x-demo-delay-ms":
+                  String(
+                    demoDelayMs
+                  )
+              },
+
+              body:
+                JSON.stringify({})
+            },
+            DEMO_REQUEST_TIMEOUT_MS
+          );
+
+        const payload =
+          await readResponsePayload(
+            upstreamResponse
+          );
+
+        response.setHeader(
+          "Cache-Control",
+          "no-store"
+        );
+
+        response.setHeader(
+          "x-request-id",
+          requestId
+        );
+
+        response
+          .status(
+            upstreamResponse.status
+          )
+          .json(payload);
+      }
+    )
+  );
+
+
+  app.get(
+    "/api/demo/traces",
+    asyncRoute(
+      async (
+        request,
+        response
+      ) => {
+        const requestedLimit =
+          Number(
+            request.query.limit ||
+            50
+          );
+
+        const limit =
+          Number.isFinite(
+            requestedLimit
+          )
+            ? Math.min(
+                Math.max(
+                  Math.floor(
+                    requestedLimit
+                  ),
+                  1
+                ),
+                200
+              )
+            : 50;
+
+        const upstreamResponse =
+          await fetchWithTimeout(
+            `${DEMO_API_GATEWAY_URL}` +
+            `/smartgrid/traces?limit=${limit}`,
+            {
+              headers: {
+                accept:
+                  "application/json"
+              }
+            },
+            5000
+          );
+
+        const payload =
+          await readResponsePayload(
+            upstreamResponse
+          );
+
+        response.setHeader(
+          "Cache-Control",
+          "no-store"
+        );
+
+        response
+          .status(
+            upstreamResponse.status
+          )
+          .json(payload);
+      }
+    )
+  );
+
+
+  app.get(
+    "/api/demo/traces/:requestId",
+    asyncRoute(
+      async (
+        request,
+        response
+      ) => {
+        const requestId =
+          normalizeDemoIdentifier(
+            request.params.requestId,
+            null
+          );
+
+        if (!requestId) {
+          return response
+            .status(400)
+            .json({
+              error:
+                "requestId invalide",
+              timestamp:
+                new Date().toISOString()
+            });
+        }
+
+        const upstreamResponse =
+          await fetchWithTimeout(
+            `${DEMO_API_GATEWAY_URL}` +
+            "/smartgrid/traces/" +
+            encodeURIComponent(
+              requestId
+            ),
+            {
+              headers: {
+                accept:
+                  "application/json"
+              }
+            },
+            5000
+          );
+
+        const payload =
+          await readResponsePayload(
+            upstreamResponse
+          );
+
+        response.setHeader(
+          "Cache-Control",
+          "no-store"
+        );
+
+        response
+          .status(
+            upstreamResponse.status
+          )
+          .json(payload);
+      }
+    )
+  );
+
+
+  app.get(
+    "/api/demo/metrics",
+    asyncRoute(
+      async (
+        request,
+        response
+      ) => {
+        response.setHeader(
+          "Cache-Control",
+          "no-store"
+        );
+
+        response.json(
+          await collectDemoMetrics()
+        );
+      }
+    )
   );
 
 
