@@ -173,7 +173,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: dashboard-frontend
-          image: dashboard-frontend:scientific-v1
+          image: dashboard-frontend:live-demo-v2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

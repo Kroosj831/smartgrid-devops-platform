@@ -11,6 +11,10 @@ import {
   loadDashboardData
 } from "./dashboard-model.mjs";
 
+import {
+  LiveDemoPage
+} from "./live-demo-page.mjs";
+
 import "./style.css";
 
 
@@ -117,6 +121,11 @@ function formatIdentifier(value) {
 
 
 createApp({
+  components: {
+    LiveDemoPage
+  },
+
+
   setup() {
     const apiBaseUrl =
       resolveApiBaseUrl();
@@ -183,6 +192,17 @@ createApp({
         description:
           "Accès aux résultats structurés et aux " +
           "contrôles d’intégrité.",
+        enabled: true
+      },
+      {
+        id: "demo",
+        label: "Démo en direct",
+        title: "Démonstration Smart Grid en direct",
+        eyebrow: "Exécution opérationnelle",
+        description:
+          "Lancement de requêtes intégrées, suivi des " +
+          "microservices et observation des métriques " +
+          "pendant l’exécution.",
         enabled: true
       }
     ];
@@ -451,8 +471,18 @@ createApp({
             </p>
           </div>
 
-          <span class="readonly-badge">
-            Lecture seule
+          <span
+            class="readonly-badge"
+            :class="{
+              'demo-mode-badge':
+                state.activePage === 'demo'
+            }"
+          >
+            {{
+              state.activePage === "demo"
+                ? "Mode démonstration"
+                : "Lecture seule"
+            }}
           </span>
         </section>
         <section class="status-strip">
@@ -483,9 +513,11 @@ createApp({
 
             <strong>
               {{
-                model.actionsEnabled
-                  ? "Actions autorisées"
-                  : "Lecture seule"
+                state.activePage === "demo"
+                  ? "Démonstration opérationnelle"
+                  : model.actionsEnabled
+                    ? "Actions autorisées"
+                    : "Lecture seule"
               }}
             </strong>
           </div>
@@ -2736,6 +2768,12 @@ createApp({
             </div>
           </section>
         </section>
+
+
+        <live-demo-page
+          v-if="state.activePage === 'demo'"
+          :api-base-url="apiBaseUrl"
+        />
 
 
         <section
