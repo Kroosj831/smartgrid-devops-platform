@@ -282,6 +282,324 @@ const buildForwardHeaders = (req) => {
   return headers;
 };
 
+
+const DEMO_TRACE_TTL_MS =
+  Number(
+    process.env.DEMO_TRACE_TTL_MS ||
+    10 * 60 * 1000
+  );
+
+const DEMO_TRACE_MAX_ITEMS =
+  Number(
+    process.env.DEMO_TRACE_MAX_ITEMS ||
+    200
+  );
+
+const DEMO_DELAY_MAX_MS =
+  Number(
+    process.env.DEMO_DELAY_MAX_MS ||
+    2000
+  );
+
+const WORKFLOW_STAGE_DEFINITIONS = [
+  {
+    id: "api-gateway",
+    label: "API Gateway",
+    order: 0
+  },
+  {
+    id: "iot-simulator",
+    label: "IoT Simulator",
+    order: 1
+  },
+  {
+    id: "data-collector",
+    label: "Data Collector",
+    order: 2
+  },
+  {
+    id: "processing-service",
+    label: "Processing Service",
+    order: 3
+  },
+  {
+    id: "optimization-service",
+    label: "Optimization Service",
+    order: 4
+  }
+];
+
+const workflowTraces = new Map();
+
+
+const calculateDurationMs = (
+  startedAtNanoseconds
+) => Number(
+  process.hrtime.bigint() -
+  startedAtNanoseconds
+) / 1_000_000;
+
+
+const roundDuration = (value) =>
+  Number(
+    Number(value || 0).toFixed(3)
+  );
+
+
+const wait = (durationMs) =>
+  new Promise(
+    (resolve) =>
+      setTimeout(resolve, durationMs)
+  );
+
+
+function parseDemoDelay(request) {
+  const requestedDelay =
+    Number(
+      request.headers[
+        "x-demo-delay-ms"
+      ] || 0
+    );
+
+  if (
+    !Number.isFinite(requestedDelay) ||
+    requestedDelay <= 0
+  ) {
+    return 0;
+  }
+
+  return Math.min(
+    Math.floor(requestedDelay),
+    DEMO_DELAY_MAX_MS
+  );
+}
+
+
+async function applyDemoDelay(trace) {
+  if (trace.demoDelayMs > 0) {
+    await wait(trace.demoDelayMs);
+  }
+}
+
+
+function cleanupWorkflowTraces() {
+  const now = Date.now();
+
+  for (
+    const [requestId, trace]
+    of workflowTraces.entries()
+  ) {
+    const referenceTime =
+      trace.completedAt ||
+      trace.failedAt ||
+      trace.startedAt;
+
+    const age =
+      now -
+      new Date(referenceTime).getTime();
+
+    if (age > DEMO_TRACE_TTL_MS) {
+      workflowTraces.delete(requestId);
+    }
+  }
+
+  if (
+    workflowTraces.size <=
+    DEMO_TRACE_MAX_ITEMS
+  ) {
+    return;
+  }
+
+  const sortedEntries = [
+    ...workflowTraces.entries()
+  ].sort(
+    (left, right) =>
+      new Date(
+        left[1].startedAt
+      ).getTime() -
+      new Date(
+        right[1].startedAt
+      ).getTime()
+  );
+
+  const numberToDelete =
+    workflowTraces.size -
+    DEMO_TRACE_MAX_ITEMS;
+
+  for (
+    const [requestId]
+    of sortedEntries.slice(
+      0,
+      numberToDelete
+    )
+  ) {
+    workflowTraces.delete(requestId);
+  }
+}
+
+
+function createWorkflowTrace({
+  requestId,
+  experimentId,
+  demoDelayMs
+}) {
+  cleanupWorkflowTraces();
+
+  const startedAt =
+    new Date().toISOString();
+
+  const trace = {
+    requestId,
+    experimentId,
+    status: "RUNNING",
+    startedAt,
+    completedAt: null,
+    failedAt: null,
+    failedStage: null,
+    durationMs: null,
+    technicalDurationMs: null,
+    demoDelayMs,
+    stages:
+      WORKFLOW_STAGE_DEFINITIONS.map(
+        (definition) => ({
+          ...definition,
+          status: "PENDING",
+          startedAt: null,
+          completedAt: null,
+          durationMs: null,
+          input: null,
+          output: null,
+          error: null
+        })
+      ),
+    finalResult: null
+  };
+
+  workflowTraces.set(
+    requestId,
+    trace
+  );
+
+  return trace;
+}
+
+
+function getWorkflowStage(
+  trace,
+  stageId
+) {
+  return trace.stages.find(
+    (stage) =>
+      stage.id === stageId
+  );
+}
+
+
+function markStageRunning(
+  trace,
+  stageId,
+  input = null
+) {
+  const stage =
+    getWorkflowStage(
+      trace,
+      stageId
+    );
+
+  if (!stage) {
+    return;
+  }
+
+  stage.status = "RUNNING";
+  stage.startedAt =
+    new Date().toISOString();
+  stage.input = input;
+  stage.output = null;
+  stage.error = null;
+}
+
+
+function markStageCompleted(
+  trace,
+  stageId,
+  durationMs,
+  output = null
+) {
+  const stage =
+    getWorkflowStage(
+      trace,
+      stageId
+    );
+
+  if (!stage) {
+    return;
+  }
+
+  stage.status = "COMPLETED";
+  stage.completedAt =
+    new Date().toISOString();
+  stage.durationMs =
+    roundDuration(durationMs);
+  stage.output = output;
+}
+
+
+function markStageFailed(
+  trace,
+  stageId,
+  durationMs,
+  error
+) {
+  const stage =
+    getWorkflowStage(
+      trace,
+      stageId
+    );
+
+  if (!stage) {
+    return;
+  }
+
+  stage.status = "FAILED";
+  stage.completedAt =
+    new Date().toISOString();
+  stage.durationMs =
+    roundDuration(durationMs);
+  stage.error = {
+    message:
+      error?.message ||
+      "Erreur inconnue",
+    status:
+      error?.response?.status ||
+      null,
+    details:
+      error?.response?.data ||
+      null
+  };
+}
+
+
+function calculateTechnicalDuration(
+  trace
+) {
+  return roundDuration(
+    trace.stages
+      .filter(
+        (stage) =>
+          stage.id !==
+          "api-gateway"
+      )
+      .reduce(
+        (total, stage) =>
+          total +
+          Number(
+            stage.durationMs || 0
+          ),
+        0
+      )
+  );
+}
+
 app.get("/platform/health", async (req, res) => {
   const results = {};
 
@@ -309,95 +627,374 @@ app.get("/platform/health", async (req, res) => {
 });
 
 app.post("/smartgrid/simulate", async (req, res) => {
-  const startedAt = process.hrtime.bigint();
+  const workflowStartedAt =
+    process.hrtime.bigint();
 
-  const requestId = req.requestId;
-  const experimentId = req.experimentId;
-  const forwardHeaders = buildForwardHeaders(req);
+  const requestId =
+    req.requestId;
 
-  let currentStage = "simulation";
+  const experimentId =
+    req.experimentId;
+
+  const forwardHeaders =
+    buildForwardHeaders(req);
+
+  const demoDelayMs =
+    parseDemoDelay(req);
+
+  const trace =
+    createWorkflowTrace({
+      requestId,
+      experimentId,
+      demoDelayMs
+    });
+
+  let currentStage =
+    "api-gateway";
+
+  let currentStageStartedAt =
+    process.hrtime.bigint();
+
+  markStageRunning(
+    trace,
+    "api-gateway",
+    {
+      method: req.method,
+      path: req.path,
+      contentType:
+        req.get("content-type") ||
+        null
+    }
+  );
 
   try {
-    const simulationResponse = await axios.get(
-      `${SERVICES.iotSimulator}/simulate`,
+    currentStage =
+      "iot-simulator";
+
+    currentStageStartedAt =
+      process.hrtime.bigint();
+
+    markStageRunning(
+      trace,
+      currentStage,
       {
-        headers: forwardHeaders,
-        timeout: SERVICE_REQUEST_TIMEOUT_MS
+        method: "GET",
+        endpoint: "/simulate"
       }
     );
 
-    const measurement = simulationResponse.data?.data;
+    const simulationResponse =
+      await axios.get(
+        `${SERVICES.iotSimulator}/simulate`,
+        {
+          headers: forwardHeaders,
+          timeout:
+            SERVICE_REQUEST_TIMEOUT_MS
+        }
+      );
 
-    if (!measurement || typeof measurement !== "object") {
+    const simulationDurationMs =
+      calculateDurationMs(
+        currentStageStartedAt
+      );
+
+    const measurement =
+      simulationResponse.data?.data;
+
+    if (
+      !measurement ||
+      typeof measurement !== "object"
+    ) {
       throw new Error(
         "Invalid measurement returned by iot-simulator"
       );
     }
 
-    currentStage = "collection";
+    await applyDemoDelay(trace);
 
-    const collectionResponse = await axios.post(
-      `${SERVICES.dataCollector}/data`,
-      measurement,
+    markStageCompleted(
+      trace,
+      currentStage,
+      simulationDurationMs,
       {
-        headers: forwardHeaders,
-        timeout: SERVICE_REQUEST_TIMEOUT_MS
+        sensorId:
+          measurement.sensorId,
+        consumption:
+          measurement.consumption,
+        production:
+          measurement.production,
+        voltage:
+          measurement.voltage,
+        frequency:
+          measurement.frequency,
+        load:
+          measurement.load,
+        timestamp:
+          measurement.timestamp
       }
     );
+
+
+    currentStage =
+      "data-collector";
+
+    currentStageStartedAt =
+      process.hrtime.bigint();
+
+    markStageRunning(
+      trace,
+      currentStage,
+      {
+        method: "POST",
+        endpoint: "/data",
+        sensorId:
+          measurement.sensorId
+      }
+    );
+
+    const collectionResponse =
+      await axios.post(
+        `${SERVICES.dataCollector}/data`,
+        measurement,
+        {
+          headers: forwardHeaders,
+          timeout:
+            SERVICE_REQUEST_TIMEOUT_MS
+        }
+      );
+
+    const collectionDurationMs =
+      calculateDurationMs(
+        currentStageStartedAt
+      );
 
     const collectedMeasurement =
-      collectionResponse.data?.data || measurement;
+      collectionResponse.data?.data ||
+      measurement;
 
-    currentStage = "processing";
+    await applyDemoDelay(trace);
 
-    const processingResponse = await axios.post(
-      `${SERVICES.processingService}/process`,
-      collectedMeasurement,
+    markStageCompleted(
+      trace,
+      currentStage,
+      collectionDurationMs,
       {
-        headers: forwardHeaders,
-        timeout: SERVICE_REQUEST_TIMEOUT_MS
+        message:
+          collectionResponse.data
+            ?.message || null,
+        total:
+          collectionResponse.data
+            ?.total ?? null,
+        receivedAt:
+          collectedMeasurement
+            ?.receivedAt || null
       }
     );
+
+
+    currentStage =
+      "processing-service";
+
+    currentStageStartedAt =
+      process.hrtime.bigint();
+
+    markStageRunning(
+      trace,
+      currentStage,
+      {
+        method: "POST",
+        endpoint: "/process",
+        consumption:
+          collectedMeasurement
+            .consumption,
+        production:
+          collectedMeasurement
+            .production,
+        load:
+          collectedMeasurement.load
+      }
+    );
+
+    const processingResponse =
+      await axios.post(
+        `${SERVICES.processingService}/process`,
+        collectedMeasurement,
+        {
+          headers: forwardHeaders,
+          timeout:
+            SERVICE_REQUEST_TIMEOUT_MS
+        }
+      );
+
+    const processingDurationMs =
+      calculateDurationMs(
+        currentStageStartedAt
+      );
 
     const processedResult =
       processingResponse.data?.result;
 
-    if (!processedResult || typeof processedResult !== "object") {
+    if (
+      !processedResult ||
+      typeof processedResult !==
+      "object"
+    ) {
       throw new Error(
         "Invalid result returned by processing-service"
       );
     }
 
-    currentStage = "optimization";
+    await applyDemoDelay(trace);
 
-    const optimizationResponse = await axios.post(
-      `${SERVICES.optimizationService}/optimize`,
-      processedResult,
+    markStageCompleted(
+      trace,
+      currentStage,
+      processingDurationMs,
       {
-        headers: forwardHeaders,
-        timeout: SERVICE_REQUEST_TIMEOUT_MS
+        consumption:
+          processedResult.consumption,
+        production:
+          processedResult.production,
+        balance:
+          processedResult.balance,
+        loadStatus:
+          processedResult.loadStatus,
+        processedAt:
+          processedResult.processedAt
       }
     );
 
-    const durationMs =
-      Number(process.hrtime.bigint() - startedAt) /
-      1_000_000;
 
-    const completedAt = new Date().toISOString();
+    currentStage =
+      "optimization-service";
+
+    currentStageStartedAt =
+      process.hrtime.bigint();
+
+    markStageRunning(
+      trace,
+      currentStage,
+      {
+        method: "POST",
+        endpoint: "/optimize",
+        balance:
+          processedResult.balance
+      }
+    );
+
+    const optimizationResponse =
+      await axios.post(
+        `${SERVICES.optimizationService}/optimize`,
+        processedResult,
+        {
+          headers: forwardHeaders,
+          timeout:
+            SERVICE_REQUEST_TIMEOUT_MS
+        }
+      );
+
+    const optimizationDurationMs =
+      calculateDurationMs(
+        currentStageStartedAt
+      );
+
+    await applyDemoDelay(trace);
+
+    markStageCompleted(
+      trace,
+      currentStage,
+      optimizationDurationMs,
+      {
+        decision:
+          optimizationResponse.data
+            ?.decision || null,
+        balance:
+          optimizationResponse.data
+            ?.balance ?? null,
+        optimizedAt:
+          optimizationResponse.data
+            ?.optimizedAt || null
+      }
+    );
+
+
+    const workflowDurationMs =
+      calculateDurationMs(
+        workflowStartedAt
+      );
+
+    const technicalDurationMs =
+      calculateTechnicalDuration(
+        trace
+      );
+
+    const completedAt =
+      new Date().toISOString();
+
+    const finalResult = {
+      measurement,
+      collection:
+        collectionResponse.data,
+      processing:
+        processingResponse.data,
+      optimization:
+        optimizationResponse.data
+    };
+
+    markStageCompleted(
+      trace,
+      "api-gateway",
+      workflowDurationMs,
+      {
+        status: "SUCCESS",
+        decision:
+          optimizationResponse.data
+            ?.decision || null,
+        balance:
+          optimizationResponse.data
+            ?.balance ?? null
+      }
+    );
+
+    trace.status =
+      "COMPLETED";
+
+    trace.completedAt =
+      completedAt;
+
+    trace.durationMs =
+      roundDuration(
+        workflowDurationMs
+      );
+
+    trace.technicalDurationMs =
+      technicalDurationMs;
+
+    trace.finalResult =
+      finalResult;
 
     console.log(
       JSON.stringify({
         timestamp: completedAt,
         level: "info",
-        event: "smartgrid_workflow_completed",
+        event:
+          "smartgrid_workflow_completed",
         service: SERVICE_NAME,
         request_id: requestId,
-        experiment_id: experimentId,
-        duration_ms: Number(durationMs.toFixed(3)),
+        experiment_id:
+          experimentId,
+        duration_ms:
+          trace.durationMs,
+        technical_duration_ms:
+          technicalDurationMs,
+        demo_delay_ms:
+          demoDelayMs,
         decision:
-          optimizationResponse.data?.decision || null,
+          optimizationResponse.data
+            ?.decision || null,
         balance:
-          optimizationResponse.data?.balance ?? null
+          optimizationResponse.data
+            ?.balance ?? null
       })
     );
 
@@ -406,32 +1003,92 @@ app.post("/smartgrid/simulate", async (req, res) => {
       status: "SUCCESS",
       requestId,
       experimentId,
-      durationMs: Number(durationMs.toFixed(3)),
+      durationMs:
+        trace.durationMs,
+      technicalDurationMs,
+      demoDelayMs,
+      traceUrl:
+        `/smartgrid/traces/${requestId}`,
       measurement,
-      collection: collectionResponse.data,
-      processing: processingResponse.data,
-      optimization: optimizationResponse.data,
-      timestamp: completedAt
+      collection:
+        collectionResponse.data,
+      processing:
+        processingResponse.data,
+      optimization:
+        optimizationResponse.data,
+      timestamp:
+        completedAt
     });
   } catch (error) {
-    const durationMs =
-      Number(process.hrtime.bigint() - startedAt) /
-      1_000_000;
+    const failedStageDurationMs =
+      calculateDurationMs(
+        currentStageStartedAt
+      );
 
-    const failedAt = new Date().toISOString();
+    markStageFailed(
+      trace,
+      currentStage,
+      failedStageDurationMs,
+      error
+    );
+
+    const workflowDurationMs =
+      calculateDurationMs(
+        workflowStartedAt
+      );
+
+    if (
+      currentStage !==
+      "api-gateway"
+    ) {
+      markStageFailed(
+        trace,
+        "api-gateway",
+        workflowDurationMs,
+        error
+      );
+    }
+
+    const failedAt =
+      new Date().toISOString();
+
+    trace.status =
+      "FAILED";
+
+    trace.failedAt =
+      failedAt;
+
+    trace.failedStage =
+      currentStage;
+
+    trace.durationMs =
+      roundDuration(
+        workflowDurationMs
+      );
+
+    trace.technicalDurationMs =
+      calculateTechnicalDuration(
+        trace
+      );
 
     const errorEvent = {
       timestamp: failedAt,
       level: "error",
-      event: "smartgrid_workflow_failed",
+      event:
+        "smartgrid_workflow_failed",
       service: SERVICE_NAME,
       request_id: requestId,
-      experiment_id: experimentId,
-      failed_stage: currentStage,
+      experiment_id:
+        experimentId,
+      failed_stage:
+        currentStage,
       downstream_status:
-        error.response?.status || null,
-      duration_ms: Number(durationMs.toFixed(3)),
-      message: error.message
+        error.response?.status ||
+        null,
+      duration_ms:
+        trace.durationMs,
+      message:
+        error.message
     };
 
     console.error(
@@ -443,15 +1100,99 @@ app.post("/smartgrid/simulate", async (req, res) => {
       status: "FAILED",
       requestId,
       experimentId,
-      failedStage: currentStage,
-      error: "Integrated Smart Grid workflow failed",
+      failedStage:
+        currentStage,
+      error:
+        "Integrated Smart Grid workflow failed",
       details:
-        error.response?.data || error.message,
-      durationMs: Number(durationMs.toFixed(3)),
-      timestamp: failedAt
+        error.response?.data ||
+        error.message,
+      durationMs:
+        trace.durationMs,
+      technicalDurationMs:
+        trace.technicalDurationMs,
+      demoDelayMs,
+      traceUrl:
+        `/smartgrid/traces/${requestId}`,
+      timestamp:
+        failedAt
     });
   }
 });
+
+
+app.get(
+  "/smartgrid/traces",
+  (req, res) => {
+    cleanupWorkflowTraces();
+
+    const requestedLimit =
+      Number(
+        req.query.limit || 50
+      );
+
+    const limit =
+      Number.isFinite(requestedLimit)
+        ? Math.min(
+            Math.max(
+              Math.floor(
+                requestedLimit
+              ),
+              1
+            ),
+            200
+          )
+        : 50;
+
+    const traces = [
+      ...workflowTraces.values()
+    ]
+      .sort(
+        (left, right) =>
+          new Date(
+            right.startedAt
+          ).getTime() -
+          new Date(
+            left.startedAt
+          ).getTime()
+      )
+      .slice(0, limit);
+
+    res.json({
+      count: traces.length,
+      traces,
+      timestamp:
+        new Date().toISOString()
+    });
+  }
+);
+
+
+app.get(
+  "/smartgrid/traces/:requestId",
+  (req, res) => {
+    cleanupWorkflowTraces();
+
+    const trace =
+      workflowTraces.get(
+        req.params.requestId
+      );
+
+    if (!trace) {
+      return res.status(404).json({
+        error:
+          "Workflow trace not found",
+        requestId:
+          req.params.requestId,
+        timestamp:
+          new Date().toISOString()
+      });
+    }
+
+    res.json(trace);
+  }
+);
+
 
 app.get("/iot/simulate", async (req, res) => {
   try {

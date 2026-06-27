@@ -232,7 +232,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: api-gateway:integrated-route-v1
+          image: api-gateway:demo-tracing-v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
