@@ -4,7 +4,7 @@ metadata:
   name: iot-simulator
   namespace: smartgrid-dev
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: iot-simulator
@@ -59,7 +59,7 @@ metadata:
   name: data-collector
   namespace: smartgrid-dev
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: data-collector
@@ -113,7 +113,7 @@ metadata:
   name: processing-service
   namespace: smartgrid-dev
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: processing-service
@@ -167,7 +167,7 @@ metadata:
   name: optimization-service
   namespace: smartgrid-dev
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: optimization-service
@@ -221,7 +221,7 @@ metadata:
   name: api-gateway
   namespace: smartgrid-dev
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: api-gateway
