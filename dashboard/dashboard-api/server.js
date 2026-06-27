@@ -94,6 +94,41 @@ const DEMO_METRIC_SERVICES =
 
 
 
+
+const DEMO_WORKFLOW_ROUTES =
+  Object.freeze({
+    "api-gateway": {
+      method: "POST",
+      route:
+        "/smartgrid/simulate"
+    },
+
+    "iot-simulator": {
+      method: "GET",
+      route:
+        "/simulate"
+    },
+
+    "data-collector": {
+      method: "POST",
+      route:
+        "/data"
+    },
+
+    "processing-service": {
+      method: "POST",
+      route:
+        "/process"
+    },
+
+    "optimization-service": {
+      method: "POST",
+      route:
+        "/optimize"
+    }
+  });
+
+
 function asyncRoute(handler) {
   return async (request, response, next) => {
     try {
@@ -410,6 +445,139 @@ function normalizeDemoIdentifier(
 }
 
 
+
+function parsePrometheusLabels(
+  labelsText
+) {
+  const labels = {};
+
+  const pattern =
+    /([A-Za-z_][A-Za-z0-9_]*)="((?:\\.|[^"])*)"/g;
+
+  let match = null;
+
+  while (
+    (
+      match =
+        pattern.exec(
+          labelsText
+        )
+    ) !== null
+  ) {
+    labels[match[1]] =
+      match[2]
+        .replaceAll(
+          '\\"',
+          '"'
+        )
+        .replaceAll(
+          "\\\\",
+          "\\"
+        );
+  }
+
+  return labels;
+}
+
+
+function parseLabeledMetricSamples(
+  metricsText,
+  metricName
+) {
+  const pattern =
+    new RegExp(
+      "^" +
+      metricName +
+      "\\\\{([^}]*)\\\\}" +
+      "\\\\s+" +
+      "([-+0-9.eE]+)" +
+      "$"
+    );
+
+  return String(
+    metricsText || ""
+  )
+    .split(/\r?\n/)
+    .map(
+      (line) =>
+        line.trim()
+    )
+    .filter(
+      (line) =>
+        line.startsWith(
+          `${metricName}{`
+        )
+    )
+    .map(
+      (line) => {
+        const match =
+          line.match(
+            pattern
+          );
+
+        if (!match) {
+          return null;
+        }
+
+        const value =
+          Number(
+            match[2]
+          );
+
+        if (
+          !Number.isFinite(value)
+        ) {
+          return null;
+        }
+
+        return {
+          labels:
+            parsePrometheusLabels(
+              match[1]
+            ),
+
+          value
+        };
+      }
+    )
+    .filter(Boolean);
+}
+
+
+function sumWorkflowRequests(
+  metricsText,
+  serviceId
+) {
+  const routeDefinition =
+    DEMO_WORKFLOW_ROUTES[
+      serviceId
+    ];
+
+  if (!routeDefinition) {
+    return 0;
+  }
+
+  return parseLabeledMetricSamples(
+    metricsText,
+    "http_requests_total"
+  )
+    .filter(
+      (sample) =>
+        sample.labels.service ===
+          serviceId &&
+        sample.labels.method ===
+          routeDefinition.method &&
+        sample.labels.route ===
+          routeDefinition.route
+    )
+    .reduce(
+      (total, sample) =>
+        total + sample.value,
+      0
+    );
+}
+
+
 function parseMetricValues(
   metricsText,
   metricName
@@ -496,7 +664,8 @@ function roundMetric(
 
 
 function parseServiceMetrics(
-  metricsText
+  metricsText,
+  serviceId
 ) {
   const cpuUserSeconds =
     sumMetricValues(
@@ -526,6 +695,12 @@ function parseServiceMetrics(
     sumMetricValues(
       metricsText,
       "http_requests_total"
+    );
+
+  const workflowRequestsTotal =
+    sumWorkflowRequests(
+      metricsText,
+      serviceId
     );
 
   return {
@@ -580,6 +755,12 @@ function parseServiceMetrics(
     httpRequestsTotal:
       roundMetric(
         httpRequestsTotal,
+        0
+      ),
+
+    workflowRequestsTotal:
+      roundMetric(
+        workflowRequestsTotal,
         0
       )
   };
@@ -642,7 +823,8 @@ async function collectSingleDemoMetric(
         ),
 
       ...parseServiceMetrics(
-        metricsText
+        metricsText,
+        service.id
       ),
 
       error:
@@ -696,6 +878,9 @@ async function collectSingleDemoMetric(
         null,
 
       httpRequestsTotal:
+        null,
+
+      workflowRequestsTotal:
         null,
 
       error:
@@ -784,6 +969,20 @@ async function collectDemoMetrics() {
             0
           ),
           0
+        ),
+
+      totalWorkflowRequests:
+        roundMetric(
+          services.reduce(
+            (total, service) =>
+              total +
+              Number(
+                service.workflowRequestsTotal ||
+                0
+              ),
+            0
+          ),
+          0
         )
     },
 
@@ -795,7 +994,10 @@ async function collectDemoMetrics() {
         "Mémoire résidente observée au moment de l’échantillonnage.",
 
       requests:
-        "Nombre cumulatif de requêtes HTTP traité par le service."
+        "Nombre cumulatif de toutes les requêtes HTTP traitées par le service.",
+
+      workflowRequests:
+        "Nombre cumulatif de requêtes appartenant exclusivement au workflow Smart Grid."
     }
   };
 }
