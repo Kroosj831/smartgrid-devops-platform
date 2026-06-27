@@ -30,6 +30,10 @@ app.use((req, res, next) => {
     ? String(req.headers["x-anomaly-id"])
     : null;
 
+  req.requestId = requestId;
+  req.experimentId = experimentId;
+  req.anomalyId = anomalyId;
+
   res.setHeader("x-request-id", requestId);
 
   res.once("finish", () => {
@@ -259,6 +263,25 @@ const SERVICES = {
   optimizationService: process.env.OPTIMIZATION_SERVICE_URL || "http://optimization-service:3004"
 };
 
+const SERVICE_REQUEST_TIMEOUT_MS =
+  Number(process.env.SERVICE_REQUEST_TIMEOUT_MS || 5000);
+
+const buildForwardHeaders = (req) => {
+  const headers = {
+    "x-request-id": req.requestId
+  };
+
+  if (req.experimentId) {
+    headers["x-experiment-id"] = req.experimentId;
+  }
+
+  if (req.anomalyId) {
+    headers["x-anomaly-id"] = req.anomalyId;
+  }
+
+  return headers;
+};
+
 app.get("/platform/health", async (req, res) => {
   const results = {};
 
@@ -283,6 +306,151 @@ app.get("/platform/health", async (req, res) => {
     services: results,
     timestamp: new Date().toISOString()
   });
+});
+
+app.post("/smartgrid/simulate", async (req, res) => {
+  const startedAt = process.hrtime.bigint();
+
+  const requestId = req.requestId;
+  const experimentId = req.experimentId;
+  const forwardHeaders = buildForwardHeaders(req);
+
+  let currentStage = "simulation";
+
+  try {
+    const simulationResponse = await axios.get(
+      `${SERVICES.iotSimulator}/simulate`,
+      {
+        headers: forwardHeaders,
+        timeout: SERVICE_REQUEST_TIMEOUT_MS
+      }
+    );
+
+    const measurement = simulationResponse.data?.data;
+
+    if (!measurement || typeof measurement !== "object") {
+      throw new Error(
+        "Invalid measurement returned by iot-simulator"
+      );
+    }
+
+    currentStage = "collection";
+
+    const collectionResponse = await axios.post(
+      `${SERVICES.dataCollector}/data`,
+      measurement,
+      {
+        headers: forwardHeaders,
+        timeout: SERVICE_REQUEST_TIMEOUT_MS
+      }
+    );
+
+    const collectedMeasurement =
+      collectionResponse.data?.data || measurement;
+
+    currentStage = "processing";
+
+    const processingResponse = await axios.post(
+      `${SERVICES.processingService}/process`,
+      collectedMeasurement,
+      {
+        headers: forwardHeaders,
+        timeout: SERVICE_REQUEST_TIMEOUT_MS
+      }
+    );
+
+    const processedResult =
+      processingResponse.data?.result;
+
+    if (!processedResult || typeof processedResult !== "object") {
+      throw new Error(
+        "Invalid result returned by processing-service"
+      );
+    }
+
+    currentStage = "optimization";
+
+    const optimizationResponse = await axios.post(
+      `${SERVICES.optimizationService}/optimize`,
+      processedResult,
+      {
+        headers: forwardHeaders,
+        timeout: SERVICE_REQUEST_TIMEOUT_MS
+      }
+    );
+
+    const durationMs =
+      Number(process.hrtime.bigint() - startedAt) /
+      1_000_000;
+
+    const completedAt = new Date().toISOString();
+
+    console.log(
+      JSON.stringify({
+        timestamp: completedAt,
+        level: "info",
+        event: "smartgrid_workflow_completed",
+        service: SERVICE_NAME,
+        request_id: requestId,
+        experiment_id: experimentId,
+        duration_ms: Number(durationMs.toFixed(3)),
+        decision:
+          optimizationResponse.data?.decision || null,
+        balance:
+          optimizationResponse.data?.balance ?? null
+      })
+    );
+
+    res.status(200).json({
+      service: SERVICE_NAME,
+      status: "SUCCESS",
+      requestId,
+      experimentId,
+      durationMs: Number(durationMs.toFixed(3)),
+      measurement,
+      collection: collectionResponse.data,
+      processing: processingResponse.data,
+      optimization: optimizationResponse.data,
+      timestamp: completedAt
+    });
+  } catch (error) {
+    const durationMs =
+      Number(process.hrtime.bigint() - startedAt) /
+      1_000_000;
+
+    const failedAt = new Date().toISOString();
+
+    const errorEvent = {
+      timestamp: failedAt,
+      level: "error",
+      event: "smartgrid_workflow_failed",
+      service: SERVICE_NAME,
+      request_id: requestId,
+      experiment_id: experimentId,
+      failed_stage: currentStage,
+      downstream_status:
+        error.response?.status || null,
+      duration_ms: Number(durationMs.toFixed(3)),
+      message: error.message
+    };
+
+    console.error(
+      JSON.stringify(errorEvent)
+    );
+
+    res.status(502).json({
+      service: SERVICE_NAME,
+      status: "FAILED",
+      requestId,
+      experimentId,
+      failedStage: currentStage,
+      error: "Integrated Smart Grid workflow failed",
+      details:
+        error.response?.data || error.message,
+      durationMs: Number(durationMs.toFixed(3)),
+      timestamp: failedAt
+    });
+  }
 });
 
 app.get("/iot/simulate", async (req, res) => {
